@@ -1,6 +1,10 @@
 
 #define __CL_ENABLE_EXCEPTIONS
 
+#include "opencv2\opencv.hpp"
+#include "opencv2\imgproc\imgproc.hpp"
+#include <opencv/cv.h>
+
 #include "cl.hpp"
 #include "util.hpp"
 #include "err_code.h"
@@ -8,8 +12,21 @@
 
 
 
+
 #define ORDER 64
 #define COUNT 1
+
+//--------------------------------------------------------------
+//
+// In order to compile, set environment variable CUDA_PATH
+// to your OpenCL installation path, for example:
+// C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v8.0
+//
+//--------------------------------------------------------------
+
+
+
+
 
 
 //------------------------------------------------------------------------------
@@ -21,7 +38,7 @@ void results(int N, std::vector<int>& C, double run_time)
 {
 
     float mflops;
-    float errsq;
+    //float errsq;
 
     mflops = 2.0 * N * N * N/(1000000.0f * run_time);
     printf(" %.2f seconds at %.1f MFLOPS \n",  run_time,mflops);
@@ -49,6 +66,21 @@ int main(int argc, char *argv[])
 
     cl::Buffer d_In, d_Out;   // Matrices in device memory
 
+    //
+    // OpenCV init
+    //
+
+    cv::VideoCapture cap(0);
+
+	if (!cap.isOpened())  // check if we succeeded
+		return -1;
+
+    cv::Mat frame;
+    cap.read(frame);
+
+    cv::imshow("frame", frame);
+
+    cv::waitKey(10);
 //--------------------------------------------------------------------------------
 // Create a context and queue
 //--------------------------------------------------------------------------------
@@ -163,7 +195,7 @@ int main(int argc, char *argv[])
         std::cerr << "ERROR: "
                   << err.what()
                   << "("
-                  << err_code(err.err())
+                  << cl_err_code(err.err())
                   << ")"
                   << std::endl;
     }

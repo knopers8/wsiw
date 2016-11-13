@@ -4,7 +4,7 @@
 	<sys/time.h>
 	<stdlib.h>
 
-1479044095 source:d:\programowanie\wsiw\logpolar-opencl\main.cpp
+1479047432 source:d:\programowanie\wsiw\logpolar-opencl\main.cpp
 	"cl.hpp"
 	"util.hpp"
 	"err_code.h"

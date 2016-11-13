@@ -30,7 +30,7 @@
  #include <cstdio>
 #endif
 
-const char *err_code (cl_int err_in)
+const char *cl_err_code (cl_int err_in)
 {
     switch (err_in) {
         case CL_SUCCESS:
@@ -140,13 +140,13 @@ const char *err_code (cl_int err_in)
 }
 
 
-void check_error(cl_int err, const char *operation, char *filename, int line)
+void cl_check_error(cl_int err, const char *operation, char *filename, int line)
 {
     if (err != CL_SUCCESS)
     {
         fprintf(stderr, "Error during operation '%s', ", operation);
         fprintf(stderr, "in '%s' on line %d\n", filename, line);
-        fprintf(stderr, "Error code was \"%s\" (%d)\n", err_code(err), err);
+        fprintf(stderr, "Error code was \"%s\" (%d)\n", cl_err_code(err), err);
         exit(EXIT_FAILURE);
     }
 }
