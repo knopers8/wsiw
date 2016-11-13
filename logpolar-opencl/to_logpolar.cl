@@ -6,5 +6,5 @@ __kernel void to_logpolar(
     int i = get_global_id(0);
     int j = get_global_id(1);
 
-    In[i*N+j] = In[i*N+j];
+    Out[i*N+j] = In[i*N+j];
 }

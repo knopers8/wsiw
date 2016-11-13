@@ -17,7 +17,7 @@
 //  Function to analyze and output results
 //
 //------------------------------------------------------------------------------
-void results(int N, std::vector<float>& C, double run_time)
+void results(int N, std::vector<int>& C, double run_time)
 {
 
     float mflops;
@@ -34,7 +34,7 @@ int main(int argc, char *argv[])
 {
 
     int N;                  // A[N][N], B[N][N], C[N][N]
-    int size;               // Number of elements in each matrix
+    int mat_size;               // Number of elements in each matrix
 
 
     double start_time;      // Starting time
@@ -42,10 +42,10 @@ int main(int argc, char *argv[])
     util::Timer timer;      // Timing
 
     N    = ORDER;
-    size = N * N;
+    mat_size = N * N;
 
-    std::vector<float> h_In(size); // Host memory for Matrix A
-    std::vector<float> h_Out(size); // Host memory for Matrix B
+    std::vector<int> h_In(mat_size); // Host memory for Matrix A
+    std::vector<int> h_Out(mat_size); // Host memory for Matrix B
 
     cl::Buffer d_In, d_Out;   // Matrices in device memory
 
@@ -85,8 +85,8 @@ int main(int argc, char *argv[])
 // Run sequential matmul
 //--------------------------------------------------------------------------------
 
-//        for (int i = 0; i < SIZE; i++)
-//            h_In[i] = rand();
+        for (int i = 0; i < mat_size; i++)
+            h_In[i] = rand();
 //
 //
 //        timer.reset();
@@ -94,12 +94,12 @@ int main(int argc, char *argv[])
 //        printf("\n===== Sequential, matrix mult (dot prod), order %d on host CPU ======\n",N);
 //        for(int i = 0; i < COUNT; i++)
 //        {
-//            for( int j = 0; j < size; j++)
+//            for( int j = 0; j < mat_size; j++)
 //                h_Out[j] = 0;
 //
 //            start_time = static_cast<double>(timer.getTimeMilliseconds()) / 1000.0;
 //
-//            for (int j = 0; j < size; j++)
+//            for (int j = 0; j < mat_size; j++)
 //                h_Out[j] = h_In[j];
 //
 //
@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
 
         d_In = cl::Buffer(context, h_In.begin(), h_In.end(), true);
 
-        d_Out = cl::Buffer(context, CL_MEM_WRITE_ONLY, sizeof(int) * size);
+        d_Out = cl::Buffer(context, CL_MEM_WRITE_ONLY, sizeof(int) * mat_size);
 
 //--------------------------------------------------------------------------------
 // OpenCL matrix multiplication ... Naive
@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
         // Do the multiplication COUNT times
         for (int i = 0; i < COUNT; i++)
         {
-            for( int j = 0; j < size; j++)
+            for( int j = 0; j < mat_size; j++)
                 h_Out[j] = 0;
 
             start_time = static_cast<double>(timer.getTimeMilliseconds()) / 1000.0;
@@ -150,10 +150,10 @@ int main(int argc, char *argv[])
             results(N, h_Out, run_time);
 
             int acc=0;
-            for( int j = 0; j < size; j++)
+            for( int j = 0; j < mat_size; j++)
                 acc += abs(h_In[j]-h_Out[j]);
 
-            printf("error: %d", acc);
+            printf("example: %d %d error: %d", h_In[31], h_Out[31], acc);
 
         } // end for loop
 

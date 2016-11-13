@@ -4,3 +4,52 @@
 	<sys/time.h>
 	<stdlib.h>
 
+1479044095 source:d:\programowanie\wsiw\logpolar-opencl\main.cpp
+	"cl.hpp"
+	"util.hpp"
+	"err_code.h"
+	"device_picker.hpp"
+
+1478544045 d:\programowanie\wsiw\logpolar-opencl\cl.hpp
+	<windows.h>
+	<malloc.h>
+	<iterator>
+	<x86intrin.h>
+	<exception>
+	<CL/cl_d3d10.h>
+	<CL/cl_dx9_media_sharing.h>
+	<CL/cl_ext.h>
+	<OpenGL/OpenGL.h>
+	<OpenCL/opencl.h>
+	<libkern/OSAtomic.h>
+	<GL/gl.h>
+	<CL/opencl.h>
+	<utility>
+	<limits>
+	<vector>
+	<string>
+	<alloca.h>
+	<emmintrin.h>
+	<xmmintrin.h>
+	<cstring>
+
+1478543221 d:\programowanie\wsiw\logpolar-opencl\util.hpp
+	<windows.h>
+	<sys/time.h>
+	<stdint.h>
+	<unistd.h>
+	<iostream>
+	<fstream>
+	<string>
+	<cstdlib>
+
+1478543221 d:\programowanie\wsiw\logpolar-opencl\err_code.h
+	<OpenCL/opencl.h>
+	<CL/cl.h>
+	<cstdio>
+
+1479040006 d:\programowanie\wsiw\logpolar-opencl\device_picker.hpp
+	<vector>
+	"err_code.h"
+	<iostream>
+
