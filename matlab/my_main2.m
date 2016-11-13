@@ -6,6 +6,8 @@ y_0=m/2;
 N_fov=50; % 24,50% total number of parts to divide each ring, each 2pi/N_fov wide
 N_circ=39; % 18,39   % numbers of rings 
 
+%asdasd
+
 b=(N_fov+pi)/(N_fov-pi);  % base of logarithm
 p_fov=(N_fov/pi); % size of circle at (x,y)=(x_0,y_0), blind spot
 
