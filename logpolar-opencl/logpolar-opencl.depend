@@ -1,0 +1,6 @@
+# depslib dependency file v1.0
+1478543221 source:d:\programowanie\wsiw\logpolar-opencl\wtime.c
+	<omp.h>
+	<sys/time.h>
+	<stdlib.h>
+
