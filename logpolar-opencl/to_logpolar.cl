@@ -1,5 +1,4 @@
 __kernel void to_logpolar(
-    const int N,
     __global int* In,
     __global int* Out)
 {
