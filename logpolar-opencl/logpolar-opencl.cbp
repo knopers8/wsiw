@@ -103,6 +103,7 @@
 			<Add library="C:/OpenCV/opencv/build/x86/cb/lib/libopencv_videostab_pch_dephelp.a" />
 			<Add library="C:/OpenCV/opencv/build/x86/cb/lib/libopencv_videostab2410.dll.a" />
 			<Add directory="$(OPENCV_PATH)/x86/cb/lib" />
+			<Add directory="$(OPENCV_PATH)/x86/cb/bin" />
 		</Linker>
 		<Unit filename="cl.hpp" />
 		<Unit filename="device_picker.hpp" />
