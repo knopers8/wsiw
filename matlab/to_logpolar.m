@@ -14,6 +14,7 @@ function [lp_img,lp_map,show_map]=to_logpolar(img,x_0,y_0, N_circ,N_fov,p_vals, 
             lp_img(i,j)= mean(mean(img(points(:,1),points(:,2))));
             lp_map(points(:,1),points(:,2))=lp_img(i,j);
             show_map(points(:,1),points(:,2))=img(points(:,1),points(:,2));
+            
 
         end
     end

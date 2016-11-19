@@ -1,0 +1,9 @@
+function [ out_array ] = write_value( array, x_cordinates, y_cordinates, value)
+%Matlab vector notatnion decided to show middle finger so here it goes,
+%should also help in C
+[n,m,~]=size(array);
+
+
+
+end
+

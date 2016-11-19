@@ -3,6 +3,7 @@ close all
 [n,m,~]=size(img);
 x_0=n/2; 
 y_0=m/2;
+
 N_fov=50; % 24,50% total number of parts to divide each ring, each 2pi/N_fov wide
 N_circ=39; % 18,39   % numbers of rings 
 

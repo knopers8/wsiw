@@ -1,0 +1,23 @@
+function [ polar_img ] = remap_to_polar( img, to_polar_map_r, to_polar_map_theta, N_r, N_s)
+
+    polar_img=zeros(N_r, N_s);
+    cnt=zeros(N_r, N_s); % stores number of cartesian pixels corresponding to log polar pixels
+    [n,m,~]=size(img);
+    
+    for i =1:n
+        for j=1:m
+            r=to_polar_map_r(i,j);
+            theta=to_polar_map_theta(i,j);
+            polar_img(r,theta)=polar_img(r,theta)+img(i,j);
+            cnt(r,theta)= cnt(r,theta)+1;
+        end
+    end
+    
+    for i =1:N_r
+        for j=1:N_s
+            polar_img(i,j)=polar_img(i,j)/cnt(i,j);
+        end
+    end
+
+end
+

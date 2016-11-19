@@ -1,0 +1,45 @@
+function [ value,cord,x_cordinates, y_cordinates ] = get_polar_pixel( img,x_0, y_0, r_min, r_max, thet_min, thet_max )
+%Function caluclates cordinaes of cartesian pixels coresponding to single
+%polar pixel.
+%img - input cartesian img
+% r_min - inner radius
+% r_max - outter radius
+% thet_min - lower border angle
+% thet_max - upper border angle
+    [n,m,~]=size(img);
+    error_margin=15; % function approximates polar pixel by rectangle created by its corners 
+    % and removes pixels not matching constraints. This parameter ensures that
+    % recatngle is big enough to cover whole polar pixel
+
+    x_corners=[r_min*cos(thet_min) r_min*cos(thet_max) r_max*cos(thet_min) r_max*cos(thet_max)]+x_0;
+    y_corners=[r_min*sin(thet_min) r_min*sin(thet_max) r_max*sin(thet_min) r_max*sin(thet_max)]+y_0;
+
+    x_max=round(max(x_corners));
+    x_min=round(min(x_corners));
+    y_max=round(max(y_corners));
+    y_min=round(min(y_corners));
+
+    x_span=x_min-error_margin:x_max+error_margin;
+    y_span=y_min-error_margin:y_max+error_margin;
+    
+    x_cordinates=[];
+    y_cordinates=[];
+    cord=[];
+    for i=1:length(x_span)
+        for j=1:length(y_span)
+            x=x_span(i)-x_0;
+            y=y_span(j)-y_0;
+            r=sqrt(x^2+y^2);
+            thet=mod(atan2(y,x)+2*pi,2*pi);
+            r_check=and(r>=r_min,r<=r_max);
+            thet_check=and(thet>=thet_min,thet<=thet_max);
+            if and(r_check,thet_check)
+                x_cordinates=[x_cordinates x_span(i)];
+                y_cordinates=[y_cordinates y_span(j)];
+                cord=[cord; x_span(i) y_span(j) ];
+            end
+        end
+    end
+    value=mean(mean(img(x_cordinates,y_cordinates)));
+end
+
