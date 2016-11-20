@@ -1,4 +1,4 @@
-function [ polar_img ] = remap_to_polar( img, to_polar_map_r, to_polar_map_theta, N_r, N_s)
+function [ polar_img,cnt ] = remap_to_polar( img, to_polar_map_x, to_polar_map_y, N_r, N_s)
 
     polar_img=zeros(N_r, N_s);
     cnt=zeros(N_r, N_s); % stores number of cartesian pixels corresponding to log polar pixels
@@ -8,14 +8,32 @@ function [ polar_img ] = remap_to_polar( img, to_polar_map_r, to_polar_map_theta
         for j=1:m
             r=to_polar_map_r(i,j);
             theta=to_polar_map_theta(i,j);
-            polar_img(r,theta)=polar_img(r,theta)+img(i,j);
-            cnt(r,theta)= cnt(r,theta)+1;
+            if and(r>0,theta>0) % skip not mapped pixels
+                polar_img(r,theta)=polar_img(r,theta)+double(img(i,j)); % sum all cartesian pixels
+                cnt(r,theta)= cnt(r,theta)+1;
+                1;
+            end
         end
     end
     
+    [map_rows, map_cols, ~] = size(to_polar_map_x);
+    
+   
     for i =1:N_r
         for j=1:N_s
-            polar_img(i,j)=polar_img(i,j)/cnt(i,j);
+            clear vec_x;
+            clear vec_y;
+            vec_x = to_polar_map_x(N_s*(i-1)+j,:);
+            vec_y = to_polar_map_y(N_s*(i-1)+j,:);
+            
+            k = 1;
+            pix = 0;
+            while(vec_x(k) ~=0)
+                pix = pix + img(vec_x(k), vec_y(k));
+                k = k + 1;
+            end
+
+            polar_img(i,j)= pix/(k-1); % divide / amount of cartesia pixels
         end
     end
 

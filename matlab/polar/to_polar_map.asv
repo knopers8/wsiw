@@ -18,8 +18,11 @@ to_polar_map_theta=zeros(n,m);
 show_polar_pixels=zeros(n,m);
 polar_img=zeros(N_r,N_s);
 
-for i=1:N_r-1
-    for j=1:N_s-1
+to_polar_map_x = zeros(N_r*N_s, 512);
+to_polar_map_y = zeros(N_r*N_s, 512);
+
+for i=1:N_r
+    for j=1:N_s
         in_R=r(i);
         out_R=r(i+1);
         [ value,cord,x_cordinates, y_cordinates ] = get_polar_pixel( img,x_0, y_0, in_R, out_R, theta(j), theta(j+1) );
@@ -27,11 +30,14 @@ for i=1:N_r-1
 %          show_polar_pixels(x_cordinates,y_cordinates)=value;
             [ show_polar_pixels ] = write_value( show_polar_pixels, x_cordinates, y_cordinates, value); %work arond of the above line
             polar_img(i,j)=value;
-            [ to_polar_map_r ] = write_value( to_polar_map_r, x_cordinates, y_cordinates, i+1);
+            [ to_polar_map_r ] = write_value( to_polar_map_r, x_cordinates, y_cordinates, i);
             [ to_polar_map_theta] = write_value( to_polar_map_theta, x_cordinates, y_cordinates, j);
-                     
+            
+            to_polar_map_x(N_s*j+i,:) = x_cordinates;
+            to_polar_map_y(N_s*j+i,:) = y_cordinates;
            %             hold on; % ploting dots
 %             plot(x_cordinates, y_cordinates,'.');
+
         end
     end
 end

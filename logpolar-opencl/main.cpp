@@ -19,9 +19,16 @@ void to_logpolar_c(
 //    __constant int center_w,
     uchar* output);
 
+void create_map()
+{
+
+}
+
 
 //delete 'x' to activate
-#define xC_MODEL
+#define C_MODEL
+
+
 
 int main(int argc, const char** argv)
 {
@@ -64,7 +71,17 @@ int main(int argc, const char** argv)
     //-----------------------------------------------------
     //log polar transformation init
     //-----------------------------------------------------
-
+    int blind = 10; // radius of blind spot, can be 0
+    int N_r = 40;   //number of rings
+    int r_max = 100; // outer raius of last ring
+    float r_n = (r_max-blind)/N_r;   // radius of n-th ring = n*r_n n=0:N_r-1;
+    int N_s = 40; // number of slices, just like pizza. Find better name and let me know. Number of part to divide every ring.
+    float thet_0 = 0; //beggining of theta ragne
+    float thet_max = 2*pi-0.001; //end of theta ragne
+    std::vector<float> theta = linspace(thet_0,thet_max,N_s+1);
+    // theta=theta(1:end-1) removes overlaping when theta [0, 2*pi] not sure if
+    // necessary
+    std::vector<float> r = (0:N_r)*r_n +blind;
 
     int src_height = mat_src.rows;
     int src_width = mat_src.cols;

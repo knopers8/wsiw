@@ -16,9 +16,9 @@ theta=linspace(thet_0,thet_max,N_s+1);
 % necessary
 r=(0:N_r)*r_n +blind; 
 
-[to_polar_map_r, to_polar_map_theta,show_polar_pixels,polar_img ] = to_polar_map( img, x_0,y_0,r,theta, N_r,N_s );
+[to_polar_map_r, to_polar_map_theta,show_polar_pixels,polar_img, to_polar_map_x, to_polar_map_y ] = to_polar_map( img, x_0,y_0,r,theta, N_r,N_s );
 
-[ polar_img_mapped ] = remap_to_polar( img, to_polar_map_r, to_polar_map_theta, N_r, N_s);
+[ polar_img_mapped ] = remap_to_polar( img, to_polar_map_x, to_polar_map_y, N_r, N_s);
 subplot(2,2,1)
 
 imshow(uint8(show_polar_pixels))
@@ -29,7 +29,7 @@ imshow(uint8(polar_img))
 
 subplot(2,2,3)
 
-imshow(uint8(to_polar_map_r ))
+% imshow(uint8(to_polar_map_r ))
 imshow(uint8(polar_img_mapped))
 subplot(2,2,4)
 
