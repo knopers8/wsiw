@@ -1,0 +1,57 @@
+//__kernel void to_logpolar(
+//    __global int* In,
+//    __global int* Out)
+//{
+//    int i = get_global_id(0);
+//    int j = get_global_id(1);
+//
+//    Out[i*N+j] = In[i*N+j];
+//}
+
+
+__kernel void to_logpolar_C1_D0(
+   __read_only __global uchar* input,
+    __constant float * thet_vals_cos,
+    __constant float * thet_vals_sin,
+    __constant float * p_vals,
+//    __constant int center_h,
+//    __constant int center_w,
+    __write_only __global uchar* output)
+{
+    int N = 50;
+    int i = get_global_id(0); //kolumna
+    int j = get_global_id(1); //wiersz
+
+    if(i==50 && j==50)
+        printf("%d %d\n", get_global_size(0), get_global_size(1));
+
+//    if( j>39 || i > 50 )
+//        printf("%d %d\n", get_global_id(0), get_global_id(1));
+
+    int center_w = 128;
+    int center_h = 128;
+
+    int read_pos;
+    //printf("%d %d %d %d\n", input[0], input[255], input[256*255], input[256*255+255]);
+    //printf("%d %d %d\n", i, j, input[256*j+i]);
+//    printf("%f %f\n", thet_vals_cos[0], thet_vals_cos[1]);
+    read_pos = p_vals[j] * thet_vals_sin[i] + center_w;
+    if(i==50 && j==50)
+            printf("read_pos: %d\n", read_pos);
+//    printf("i: %d, j: %d, read_pos i: %d j: %d\n", i, j, read_pos, (int)( p_vals[j] * thet_vals_cos[i] + center_h));
+    read_pos += 256 * ( p_vals[j] * thet_vals_cos[i] + center_h);
+    if(i==50 && j==50)
+            printf("read_pos: %d\n", read_pos);
+
+//    printf("%d\n", (int)(3.0 * 3));
+//    if(read_pos > 65500 || i>48)
+//    printf("input[read_pos]: %d, read_pos: %d\n", input[read_pos], read_pos);
+
+    if(i==50 && j==50)
+            printf("read_pos: %d\n", read_pos);
+
+    output[64*j+i] = input[read_pos]; //(int)(p_vals[j] * thet_vals_sin[i] + center_w) + (int)(256 * ( p_vals[j] * thet_vals_cos[i] + center_h))];
+
+
+}
+
