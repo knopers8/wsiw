@@ -12,6 +12,7 @@
 #define MAX_PIX_COUNT 128
 
 #include "polar_utils.hpp"
+#include "util.hpp"
 
 
 //delete 'x' to activate
@@ -21,6 +22,12 @@
 
 int main(int argc, const char** argv)
 {
+
+
+    double start_time;      // Starting time
+    double run_time;        // Timing
+    util::Timer timer;      // Timing
+
     //-----------------------------------------------------
     // device init
     //-----------------------------------------------------
@@ -131,8 +138,9 @@ int main(int argc, const char** argv)
     std::size_t globalThreads[3]={ mat_dst.step1(), N_r, 1};
     std::vector<std::pair<size_t , const void *> > args;
 
-    args.push_back( std::make_pair( sizeof(cl_mem), (void *) &ocl_src.data ));
+    start_time = static_cast<double>(timer.getTimeMilliseconds()) / 1000.0;
 
+    args.push_back( std::make_pair( sizeof(cl_mem), (void *) &ocl_src.data ));
 
     args.push_back( std::make_pair( sizeof(cl_mem), (void *) &ocl_to_polar_map_x.data ));
     args.push_back( std::make_pair( sizeof(cl_mem), (void *) &ocl_to_polar_map_y.data ));
@@ -146,6 +154,11 @@ int main(int argc, const char** argv)
     cv::ocl::openCLExecuteKernelInterop(cv::ocl::Context::getContext(),
         program, "to_polar", globalThreads, NULL, args, channels, depth, NULL);
     ocl_dst.download(mat_dst);
+
+    run_time  = (static_cast<double>(timer.getTimeMilliseconds()) / 1000.0) - start_time;
+
+    printf("Runtime %.3f seconds\n",  run_time);
+
 #endif
 
 
