@@ -5,28 +5,17 @@
 #include <CL/cl.h>
 #include <iostream>
 #include <fstream>
-#include <cmath>
 #include <iomanip>
 
+
 #define PI 3.14159265359
+#define MAX_PIX_COUNT 128
 
-void to_logpolar_c(
-    uchar* input,
-    float * thet_vals_cos,
-    float * thet_vals_sin,
-    float * p_vals,
-//    __constant int center_h,
-//    __constant int center_w,
-    uchar* output);
-
-void create_map()
-{
-
-}
+#include "polar_utils.hpp"
 
 
 //delete 'x' to activate
-#define C_MODEL
+#define xC_MODEL
 
 
 
@@ -74,14 +63,8 @@ int main(int argc, const char** argv)
     int blind = 10; // radius of blind spot, can be 0
     int N_r = 40;   //number of rings
     int r_max = 100; // outer raius of last ring
-    float r_n = (r_max-blind)/N_r;   // radius of n-th ring = n*r_n n=0:N_r-1;
+    float r_n = (r_max-blind)/(float)N_r;   // radius of n-th ring = n*r_n n=0:N_r-1;
     int N_s = 40; // number of slices, just like pizza. Find better name and let me know. Number of part to divide every ring.
-    float thet_0 = 0; //beggining of theta ragne
-    float thet_max = 2*pi-0.001; //end of theta ragne
-    std::vector<float> theta = linspace(thet_0,thet_max,N_s+1);
-    // theta=theta(1:end-1) removes overlaping when theta [0, 2*pi] not sure if
-    // necessary
-    std::vector<float> r = (0:N_r)*r_n +blind;
 
     int src_height = mat_src.rows;
     int src_width = mat_src.cols;
@@ -89,50 +72,26 @@ int main(int argc, const char** argv)
     int center_h = src_height/2;
     int center_w = src_width/2;
 
-    int N_fov = 50; // total number of parts to divide each ring, each 2pi/N_fov wide
-    int N_circ = 39; //numbers of rings
-
-    float b = (N_fov+PI)/(N_fov-PI); // base of logarithm
-    float p_fov = N_fov/PI; // size of circle at (x,y)=(x_0,y_0), blind spot
+    cv::Mat to_polar_map_x;
+    cv::Mat to_polar_map_y;
 
 
-    std::vector<float> p_vals;
-    std::vector<float> sample_radius;
-    for(int i = 0; i < N_circ; i++)
-    {
-        p_vals.push_back( pow(b, i) ); // R values  b^i  i: [0, N_circ-1]
-        sample_radius.push_back( PI * p_vals.back() / N_fov ); // radius of single wheel on 'i' ring (single log-polar pixel)
-    }
+    create_map(to_polar_map_x, to_polar_map_y, N_s, N_r, r_n, blind, center_h, center_w);
 
-    // theta values
-    std::vector<float> thet_vals;
-    std::vector<float> thet_vals_cos;
-    std::vector<float> thet_vals_sin;
-
-    for(int i = 0; i < N_fov; i++)
-    {
-        thet_vals.push_back( i * ( (2*PI) / N_fov ));
-        thet_vals_cos.push_back( cos( thet_vals.back() ) );
-        thet_vals_sin.push_back( sin( thet_vals.back() ) );
-    }
+//    int a = MAX_PIX_COUNT*2*(40*39+39);
+//
+//    for( int i=a; i< a+280; i += 2)
+//    {
+//        std::cout << (((int16_t)to_polar_map_x.data[i+1] << 8)) + (int16_t)to_polar_map_x.data[i] << " ";
+//        std::cout << (((int16_t)to_polar_map_y.data[i+1] << 8)) + (int16_t)to_polar_map_y.data[i]  << std::endl;
+//    }
 
 
-    //check accuracy with matlab model
-
-    std::cout << "p_vals, sample_radius: \n";
-    for( int i = 0; i < p_vals.size(); i++ )
-        std::cout << std::setw(15) << p_vals[i] << std::setw(15) << sample_radius[i] << std::endl;
-    std::cout << std::endl;
-
-    std::cout << "thet_vals, cos, sin: \n";
-    std::cout.width(2);
-    for( int i = 0; i < thet_vals.size(); i++ )
-        std::cout << std::setw(15) << thet_vals[i] << std::setw(15) <<  thet_vals_cos[i] << std::setw(15) << thet_vals_sin[i] << std::endl;
 
 #ifdef C_MODEL
-    cv::Mat mat_dst = cv::Mat( N_circ, N_fov, mat_src.type(), double(0));
+    cv::Mat mat_dst = cv::Mat( N_r, N_s, mat_src.type(), double(0));
 
-    to_logpolar_c( mat_src.data, thet_vals_cos.data(), thet_vals_sin.data(), p_vals.data(), mat_dst.data);
+    to_polar_c( mat_src.data, (int32_t *)to_polar_map_x.data, (int32_t *)to_polar_map_y.data, mat_dst.data);
 
 
 #else
@@ -140,36 +99,43 @@ int main(int argc, const char** argv)
     // OpenCL matrices init
     //-----------------------------------------------------
 
-    cv::Mat mat_dst = cv::Mat( N_circ, N_fov, mat_src.type(), double(0));
+    cv::Mat mat_dst = cv::Mat( N_r, N_s, mat_src.type(), double(0));
 
     cv::ocl::oclMat ocl_src(mat_src);
 //    cv::ocl::oclMat ocl_dst( mat_src.size(), mat_src.type());
     cv::ocl::oclMat ocl_dst( mat_dst);//N_circ, N_fov, mat_src.type());
 
-    cv::ocl::oclMat ocl_thet_vals_cos( {thet_vals_cos.size(), 1}, CV_32F, (void *) thet_vals_cos.data() );
-    cv::ocl::oclMat ocl_thet_vals_sin( {thet_vals_sin.size(), 1}, CV_32F, (void *) thet_vals_sin.data() );
-    cv::ocl::oclMat ocl_p_vals( {p_vals.size(), 1}, CV_32F, (void *) p_vals.data() );
+    cv::ocl::oclMat ocl_to_polar_map_x( to_polar_map_x );
+    cv::ocl::oclMat ocl_to_polar_map_y( to_polar_map_y );
+
+//    std::vector<int> vec_x = std::vector<int>( N_r*N_s*MAX_PIX_COUNT, 1);
+//    std::vector<int> vec_y = std::vector<int>( N_r*N_s*MAX_PIX_COUNT, 1);
+//
+//    cv::ocl::oclMat ocl_to_polar_map_x( {vec_x.size(), 1}, CV_32S, (void *) vec_x.data() );
+//    cv::ocl::oclMat ocl_to_polar_map_y( {vec_y.size(), 1}, CV_32S, (void *) vec_y.data() );
+
+
 
     //-----------------------------------------------------
     //load kernel source code and init program
     //-----------------------------------------------------
 
-    std::ifstream in("to_logpolar.cl");
+    std::ifstream in("to_polar.cl");
     std::string contents((std::istreambuf_iterator<char>(in)),
                             std::istreambuf_iterator<char>());
 
-    cv::ocl::ProgramSource program("to_logpolar", contents.c_str());
-    printf("mat step: %d total: %d\n", mat_dst.step1(), mat_dst.total());
-    std::size_t globalThreads[3]={ mat_dst.step1(), N_circ, 1};
+    cv::ocl::ProgramSource program("to_polar", contents.c_str());
+    in.close();
+
+    printf("mat step: %d total: %d sizeof(cl_mem): %d\n", mat_dst.step1(), mat_dst.total(), sizeof(cl_mem));
+    std::size_t globalThreads[3]={ mat_dst.step1(), N_r, 1};
     std::vector<std::pair<size_t , const void *> > args;
 
     args.push_back( std::make_pair( sizeof(cl_mem), (void *) &ocl_src.data ));
 
-    args.push_back( std::make_pair( sizeof(cl_mem), (void *) &ocl_thet_vals_cos.data ));
-    args.push_back( std::make_pair( sizeof(cl_mem), (void *) &ocl_thet_vals_sin.data ));
-    args.push_back( std::make_pair( sizeof(cl_mem), (void *) &ocl_p_vals.data ));
-//    args.push_back( std::make_pair( sizeof(cl_mem), (void *) center_h ));
-//    args.push_back( std::make_pair( sizeof(cl_mem), (void *) center_w ));
+
+    args.push_back( std::make_pair( sizeof(cl_mem), (void *) &ocl_to_polar_map_x.data ));
+    args.push_back( std::make_pair( sizeof(cl_mem), (void *) &ocl_to_polar_map_y.data ));
 
     args.push_back( std::make_pair( sizeof(cl_mem), (void *) &ocl_dst.data ));
 
@@ -178,7 +144,7 @@ int main(int argc, const char** argv)
     //-----------------------------------------------------
 
     cv::ocl::openCLExecuteKernelInterop(cv::ocl::Context::getContext(),
-        program, "to_logpolar", globalThreads, NULL, args, channels, depth, NULL);
+        program, "to_polar", globalThreads, NULL, args, channels, depth, NULL);
     ocl_dst.download(mat_dst);
 #endif
 
@@ -186,7 +152,7 @@ int main(int argc, const char** argv)
     //-----------------------------------------------------
     //show results
     //-----------------------------------------------------
-//    cv::resize(mat_dst, mat_dst, {N_fov*4, N_circ*4}, 0, 0, CV_INTER_NN);
+    cv::resize(mat_dst, mat_dst, {N_r*4, N_s*4}, 0, 0, CV_INTER_NN);
 
 
     cv::namedWindow("mat_src");
@@ -201,35 +167,6 @@ int main(int argc, const char** argv)
 
 
 
-void to_logpolar_c(
-    uchar* input,
-    float * thet_vals_cos,
-    float * thet_vals_sin,
-    float * p_vals,
-//    __constant int center_h,
-//    __constant int center_w,
-    uchar* output)
-{
-    int N = 50;
-    int i; //kolumna
-    int j; //wiersz
 
-    int center_w = 128;
-    int center_h = 128;
 
-    std::cout << p_vals[0] << " " << p_vals[38] << std::endl;
-    std::cout << thet_vals_sin[0] << " " << thet_vals_sin[49] << std::endl;
 
-    int read_pos;
-
-    for( i = 0; i < 50; i++){
-        for( j = 0; j < 39; j++){
-            read_pos = p_vals[j] * thet_vals_sin[i] + center_w;
-            read_pos += 256 * ( p_vals[j] * thet_vals_cos[i] + center_h);
-            output[50*j+i] = input[read_pos];
-//            output[50*j+i] = input[256*j+i];
-
-        }
-    }
-
-}
