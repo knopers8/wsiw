@@ -17,16 +17,20 @@
 
 //delete 'x' to activate
 #define xC_MODEL
+#define WEBCAM
 
 
 
 int main(int argc, const char** argv)
 {
-
-
-    double start_time;      // Starting time
-    double run_time;        // Timing
-    util::Timer timer;      // Timing
+    //-----------------------------------------------------
+    // timing init
+    //-----------------------------------------------------
+    double loop_start_time = 0;
+    double cl_start_time = 0;
+    double loop_run_time = 0;
+    double cl_run_time = 0;
+    util::Timer timer;
 
     //-----------------------------------------------------
     // device init
@@ -54,6 +58,22 @@ int main(int argc, const char** argv)
     //-----------------------------------------------------
     //image source init
     //-----------------------------------------------------
+
+#ifdef WEBCAM
+    cv::VideoCapture cap(0);
+    cv::Mat mat_src;
+
+	if (!cap.isOpened())  // check if we succeeded
+		return 10;
+
+    if (!cap.read(mat_src))
+		return 11;
+
+    cv::cvtColor(mat_src, mat_src, CV_BGR2GRAY);
+    cv::resize(mat_src, mat_src, {256, 256}, 0, 0, CV_INTER_NN);
+
+#else
+
     cv::Mat mat_src = cv::imread("cameraman.tif", cv::IMREAD_GRAYSCALE);
 
     if(mat_src.empty())
@@ -61,11 +81,13 @@ int main(int argc, const char** argv)
         std::cerr << "Failed to open image file." << std::endl;
         return -1;
     }
+#endif // WEBCAM
+
     unsigned int channels = mat_src.channels();
     unsigned int depth    = mat_src.depth();
 
     //-----------------------------------------------------
-    //log polar transformation init
+    // polar transformation init
     //-----------------------------------------------------
     int blind = 10; // radius of blind spot, can be 0
     int N_r = 40;   //number of rings
@@ -90,6 +112,8 @@ int main(int argc, const char** argv)
     for( step = 0; step < N_s; step += 64);
     std::vector<int> params = { MAX_PIX_COUNT, N_s, N_r, src_height, src_width, step};
 
+    cv::Mat mat_dst = cv::Mat( N_r, N_s, mat_src.type(), double(0));
+    cv::Mat result_display;
 
 //    int a = MAX_PIX_COUNT*2*(40*39+39);
 //
@@ -101,6 +125,8 @@ int main(int argc, const char** argv)
 
 
 
+
+
 #ifdef C_MODEL
     cv::Mat mat_dst = cv::Mat( N_r, N_s, mat_src.type(), double(0));
 
@@ -109,29 +135,14 @@ int main(int argc, const char** argv)
 
 #else
     //-----------------------------------------------------
-    // OpenCL matrices init
+    // OpenCL init
     //-----------------------------------------------------
-
-    cv::Mat mat_dst = cv::Mat( N_r, N_s, mat_src.type(), double(0));
-
-    cv::ocl::oclMat ocl_src(mat_src);
-//    cv::ocl::oclMat ocl_dst( mat_src.size(), mat_src.type());
-    cv::ocl::oclMat ocl_dst( mat_dst);//N_circ, N_fov, mat_src.type());
 
     cv::ocl::oclMat ocl_to_polar_map_x( to_polar_map_x );
     cv::ocl::oclMat ocl_to_polar_map_y( to_polar_map_y );
     cv::ocl::oclMat ocl_params( {params.size(), 1}, CV_32S, (void *) params.data() );
 
-
-//    std::vector<int> vec_x = std::vector<int>( N_r*N_s*MAX_PIX_COUNT, 1);
-//    std::vector<int> vec_y = std::vector<int>( N_r*N_s*MAX_PIX_COUNT, 1);
-//
-//    cv::ocl::oclMat ocl_to_polar_map_x( {vec_x.size(), 1}, CV_32S, (void *) vec_x.data() );
-//    cv::ocl::oclMat ocl_to_polar_map_y( {vec_y.size(), 1}, CV_32S, (void *) vec_y.data() );
-
-
-
-    //-----------------------------------------------------
+   //-----------------------------------------------------
     //load kernel source code and init program
     //-----------------------------------------------------
 
@@ -143,18 +154,37 @@ int main(int argc, const char** argv)
     in.close();
 
     printf("mat step: %d total: %d sizeof(cl_mem): %d\n", mat_dst.step1(), mat_dst.total(), sizeof(cl_mem));
-    std::size_t globalThreads[3]={ mat_dst.step1(), N_r, 1};
-    std::vector<std::pair<size_t , const void *> > args;
+    std::size_t globalThreads[3] = { 1, N_r, 1}; //mat_dst.step1(), N_r, 1};
+    //std::size_t localThreads[3] = {};
+    std::vector<std::pair<size_t , const void *> > args(5);
 
-    start_time = static_cast<double>(timer.getTimeMilliseconds()) / 1000.0;
 
-    args.push_back( std::make_pair( sizeof(cl_mem), (void *) &ocl_src.data ));
 
-    args.push_back( std::make_pair( sizeof(cl_mem), (void *) &ocl_to_polar_map_x.data ));
-    args.push_back( std::make_pair( sizeof(cl_mem), (void *) &ocl_to_polar_map_y.data ));
-    args.push_back( std::make_pair( sizeof(cl_mem), (void *) &ocl_params.data ));
+    args[1] =  std::make_pair( sizeof(cl_mem), (void *) &ocl_to_polar_map_x.data );
+    args[2] =  std::make_pair( sizeof(cl_mem), (void *) &ocl_to_polar_map_y.data );
+    args[3] =  std::make_pair( sizeof(cl_mem), (void *) &ocl_params.data );
 
-    args.push_back( std::make_pair( sizeof(cl_mem), (void *) &ocl_dst.data ));
+    cv::ocl::oclMat ocl_src;
+    cv::ocl::oclMat ocl_dst;
+
+#ifdef WEBCAM
+    while(cap.read(mat_src))
+    {
+
+//    cv::Rect crop(0, 0, 255, 255);
+//    mat_src = mat_src(crop);
+
+    cv::cvtColor(mat_src, mat_src, CV_BGR2GRAY);
+    cv::resize(mat_src, mat_src, {256, 256}, 0, 0, CV_INTER_NN);
+#endif //WEBCAM
+
+    cl_start_time = static_cast<double>(timer.getTimeMilliseconds()) / 1000.0;
+
+    ocl_src = mat_src;
+    ocl_dst = mat_dst;
+
+    args[0] = std::make_pair( sizeof(cl_mem), (void *) &ocl_src.data );
+    args[4] = std::make_pair( sizeof(cl_mem), (void *) &ocl_dst.data );
 
     //-----------------------------------------------------
     //execute kernel
@@ -164,23 +194,37 @@ int main(int argc, const char** argv)
         program, "to_polar", globalThreads, NULL, args, channels, depth, NULL);
     ocl_dst.download(mat_dst);
 
-    run_time  = (static_cast<double>(timer.getTimeMilliseconds()) / 1000.0) - start_time;
+    cl_run_time  = (static_cast<double>(timer.getTimeMilliseconds()) / 1000.0) - cl_start_time;
 
-    printf("Runtime %.4f seconds\n",  run_time);
 
-#endif
+
+#endif //C_MODEL
 
 
     //-----------------------------------------------------
     //show results
     //-----------------------------------------------------
-    cv::resize(mat_dst, mat_dst, {N_r*4, N_s*4}, 0, 0, CV_INTER_NN);
+    cv::resize(mat_dst, result_display, {N_r*4, N_s*4}, 0, 0, CV_INTER_NN);
 
 
-    cv::namedWindow("mat_src");
-    cv::namedWindow("mat_dst");
-    cv::imshow("mat_src", mat_src);
-    cv::imshow("mat_dst", mat_dst);
+    cv::namedWindow("Source");
+    cv::namedWindow("Polar");
+    cv::imshow("Source", mat_src);
+    cv::imshow("Polar", result_display);
+
+#ifdef WEBCAM
+
+    loop_run_time = (static_cast<double>(timer.getTimeMilliseconds()) / 1000.0) - loop_start_time;
+    printf("\bLoop: %.3f s, OpenCL: %.3f s - %.0f\% \n", loop_run_time, cl_run_time, 100*cl_run_time/loop_run_time);
+    loop_start_time = static_cast<double>(timer.getTimeMilliseconds()) / 1000.0;
+    cv::waitKey(1); //ms
+    }
+#else
+
+    printf("OpenCL runtime %.3f seconds\n",  cl_run_time);
+
+#endif // WEBCAM
+
     cv::waitKey(0);
     cv::destroyAllWindows();
 
