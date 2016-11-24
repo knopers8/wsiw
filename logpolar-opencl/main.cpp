@@ -85,6 +85,12 @@ int main(int argc, const char** argv)
 
     create_map(to_polar_map_x, to_polar_map_y, N_s, N_r, r_n, blind, center_h, center_w);
 
+    //create params vector
+    int step;
+    for( step = 0; step < N_s; step += 64);
+    std::vector<int> params = { MAX_PIX_COUNT, N_s, N_r, src_height, src_width, step};
+
+
 //    int a = MAX_PIX_COUNT*2*(40*39+39);
 //
 //    for( int i=a; i< a+280; i += 2)
@@ -114,6 +120,8 @@ int main(int argc, const char** argv)
 
     cv::ocl::oclMat ocl_to_polar_map_x( to_polar_map_x );
     cv::ocl::oclMat ocl_to_polar_map_y( to_polar_map_y );
+    cv::ocl::oclMat ocl_params( {params.size(), 1}, CV_32S, (void *) params.data() );
+
 
 //    std::vector<int> vec_x = std::vector<int>( N_r*N_s*MAX_PIX_COUNT, 1);
 //    std::vector<int> vec_y = std::vector<int>( N_r*N_s*MAX_PIX_COUNT, 1);
@@ -144,6 +152,7 @@ int main(int argc, const char** argv)
 
     args.push_back( std::make_pair( sizeof(cl_mem), (void *) &ocl_to_polar_map_x.data ));
     args.push_back( std::make_pair( sizeof(cl_mem), (void *) &ocl_to_polar_map_y.data ));
+    args.push_back( std::make_pair( sizeof(cl_mem), (void *) &ocl_params.data ));
 
     args.push_back( std::make_pair( sizeof(cl_mem), (void *) &ocl_dst.data ));
 
@@ -157,7 +166,7 @@ int main(int argc, const char** argv)
 
     run_time  = (static_cast<double>(timer.getTimeMilliseconds()) / 1000.0) - start_time;
 
-    printf("Runtime %.3f seconds\n",  run_time);
+    printf("Runtime %.4f seconds\n",  run_time);
 
 #endif
 

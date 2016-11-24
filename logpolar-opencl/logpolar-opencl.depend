@@ -4,7 +4,7 @@
 	<sys/time.h>
 	<stdlib.h>
 
-1479760308 source:d:\programowanie\wsiw\logpolar-opencl\main.cpp
+1479992015 source:d:\programowanie\wsiw\logpolar-opencl\main.cpp
 	<opencv2/core/core.hpp>
 	<opencv2/highgui/highgui.hpp>
 	<opencv2/ocl/ocl.hpp>
@@ -13,6 +13,7 @@
 	<fstream>
 	<iomanip>
 	"polar_utils.hpp"
+	"util.hpp"
 
 1478544045 d:\programowanie\wsiw\logpolar-opencl\cl.hpp
 	<windows.h>

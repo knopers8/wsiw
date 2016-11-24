@@ -111,7 +111,7 @@
 		<Unit filename="main.cpp" />
 		<Unit filename="polar_utils.cpp" />
 		<Unit filename="polar_utils.hpp" />
-		<Unit filename="to_logpolar.cl" />
+		<Unit filename="to_polar.cl" />
 		<Unit filename="util.hpp" />
 		<Unit filename="wtime.c">
 			<Option compilerVar="CC" />
