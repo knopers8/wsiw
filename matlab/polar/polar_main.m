@@ -19,6 +19,16 @@ r=(0:N_r)*r_n +blind;
 [to_polar_map_r, to_polar_map_theta,show_polar_pixels,polar_img, to_polar_map_x, to_polar_map_y ] = to_polar_map( img, x_0,y_0,r,theta, N_r,N_s );
 
 [ polar_img_mapped ] = remap_to_polar( img, to_polar_map_x, to_polar_map_y, N_r, N_s);
+
+ [ to_cart_map_r,  to_cart_map_theta ] = to_cart_map( img, n,m, x_0,y_0,r,theta, N_r,N_s );
+ 
+ 
+polar_img2=rotate_lp_image( polar_img_mapped, 10 );
+
+ 
+ 
+  [ img2] = remap_to_cart( polar_img2 , to_cart_map_r,  to_cart_map_theta);
+
 subplot(2,2,1)
 
 imshow(uint8(show_polar_pixels))
@@ -33,4 +43,4 @@ subplot(2,2,3)
 imshow(uint8(polar_img_mapped))
 subplot(2,2,4)
 
-imshow(uint8(to_polar_map_theta ))
+imshow(uint8(img2))
