@@ -1,10 +1,10 @@
 # depslib dependency file v1.0
-1478543221 source:d:\programowanie\wsiw\logpolar-opencl\wtime.c
+1480586334 source:d:\programowanie\wsiw\logpolar-opencl\wtime.c
 	<omp.h>
 	<sys/time.h>
 	<stdlib.h>
 
-1479994409 source:d:\programowanie\wsiw\logpolar-opencl\main.cpp
+1480588959 source:d:\programowanie\wsiw\logpolar-opencl\main.cpp
 	<opencv2/core/core.hpp>
 	<opencv2/highgui/highgui.hpp>
 	<opencv2/ocl/ocl.hpp>
@@ -38,7 +38,7 @@
 	<xmmintrin.h>
 	<cstring>
 
-1478543221 d:\programowanie\wsiw\logpolar-opencl\util.hpp
+1480586334 d:\programowanie\wsiw\logpolar-opencl\util.hpp
 	<windows.h>
 	<sys/time.h>
 	<stdint.h>
@@ -158,7 +158,7 @@
 1387532998 c:\opencv\opencv\build\include\opencv2\ocl\matrix_operations.hpp
 	"opencv2/ocl/ocl.hpp"
 
-1479758335 d:\programowanie\wsiw\logpolar-opencl\polar_utils.hpp
+1480589196 d:\programowanie\wsiw\logpolar-opencl\polar_utils.hpp
 	<vector>
 	<algorithm>
 	<cmath>
@@ -166,6 +166,6 @@
 	<opencv2/highgui/highgui.hpp>
 	<opencv2/ocl/ocl.hpp>
 
-1479759576 source:d:\programowanie\wsiw\logpolar-opencl\polar_utils.cpp
+1480589279 source:d:\programowanie\wsiw\logpolar-opencl\polar_utils.cpp
 	"polar_utils.hpp"
 

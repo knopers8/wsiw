@@ -101,11 +101,8 @@ int main(int argc, const char** argv)
     int center_h = src_height/2;
     int center_w = src_width/2;
 
-    cv::Mat to_polar_map_x;
-    cv::Mat to_polar_map_y;
-
-
-    create_map(to_polar_map_x, to_polar_map_y, N_s, N_r, r_n, blind, center_h, center_w);
+    cv::Mat to_polar_map;
+    create_map(to_polar_map, N_s, N_r, r_n, blind, center_h, center_w, src_width);
 
     //create params vector
     int step;
@@ -138,8 +135,8 @@ int main(int argc, const char** argv)
     // OpenCL init
     //-----------------------------------------------------
 
-    cv::ocl::oclMat ocl_to_polar_map_x( to_polar_map_x );
-    cv::ocl::oclMat ocl_to_polar_map_y( to_polar_map_y );
+    cv::ocl::oclMat ocl_to_polar_map( to_polar_map );
+//    cv::ocl::oclMat ocl_to_polar_map_y( to_polar_map_y );
     cv::ocl::oclMat ocl_params( {params.size(), 1}, CV_32S, (void *) params.data() );
 
    //-----------------------------------------------------
@@ -156,13 +153,13 @@ int main(int argc, const char** argv)
     printf("mat step: %d total: %d sizeof(cl_mem): %d\n", mat_dst.step1(), mat_dst.total(), sizeof(cl_mem));
     std::size_t globalThreads[3] = { 1, N_r, 1}; //mat_dst.step1(), N_r, 1};
     //std::size_t localThreads[3] = {};
-    std::vector<std::pair<size_t , const void *> > args(5);
+    std::vector<std::pair<size_t , const void *> > args(4);
 
 
 
-    args[1] =  std::make_pair( sizeof(cl_mem), (void *) &ocl_to_polar_map_x.data );
-    args[2] =  std::make_pair( sizeof(cl_mem), (void *) &ocl_to_polar_map_y.data );
-    args[3] =  std::make_pair( sizeof(cl_mem), (void *) &ocl_params.data );
+    args[1] =  std::make_pair( sizeof(cl_mem), (void *) &ocl_to_polar_map.data );
+//    args[2] =  std::make_pair( sizeof(cl_mem), (void *) &ocl_to_polar_map_y.data );
+    args[2] =  std::make_pair( sizeof(cl_mem), (void *) &ocl_params.data );
 
     cv::ocl::oclMat ocl_src;
     cv::ocl::oclMat ocl_dst;
@@ -184,7 +181,7 @@ int main(int argc, const char** argv)
     ocl_dst = mat_dst;
 
     args[0] = std::make_pair( sizeof(cl_mem), (void *) &ocl_src.data );
-    args[4] = std::make_pair( sizeof(cl_mem), (void *) &ocl_dst.data );
+    args[3] = std::make_pair( sizeof(cl_mem), (void *) &ocl_dst.data );
 
     //-----------------------------------------------------
     //execute kernel

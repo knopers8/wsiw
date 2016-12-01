@@ -11,8 +11,7 @@
 
 __kernel void to_polar_C1_D0(
    __read_only __global uchar* input,
-   __read_only __global int* to_polar_map_x,
-   __read_only __global int* to_polar_map_y,
+   __read_only __global int* to_polar_map,
    __read_only __constant int* params,
     __write_only __global uchar* output)
 {
@@ -30,33 +29,20 @@ __kernel void to_polar_C1_D0(
     int N_s = params[1];
     int step = params[5];
     int src_width = params[4];
-    int map_local_x[128];
-    int map_local_y[128];
+    int map_local[128];
+
 
     a = (N_s*j)*max_pix_count;
     for( int i = 0; i < N_s; i++)
     {
         a += max_pix_count;
 
-        //barrier( CLK_GLOBAL_MEM_FENCE );
-
-        for( k = 0; k < max_pix_count; k++)
-        {
-            map_local_x[k] = to_polar_map_x[k + a];
-            map_local_y[k] = to_polar_map_y[k + a];
-        }
-        map_local_x[k] = 0;
-        map_local_y[k] = 0;
-
-        //barrier( CLK_GLOBAL_MEM_FENCE );
-
         acc = 0;
         for( k = 0; k < max_pix_count; k++)
         {
-            read_pos = map_local_y[k];
+            read_pos = to_polar_map[k + a];
             if ( read_pos > 0 )
             {
-                read_pos += map_local_x[k]*src_width;
                 acc += input[read_pos];
             }
             else
@@ -64,9 +50,6 @@ __kernel void to_polar_C1_D0(
                 break;
             }
         }
-
-        //barrier( CLK_GLOBAL_MEM_FENCE );
-
         output[step*j+i] = k>0 ? acc/k : 0;
     }
 

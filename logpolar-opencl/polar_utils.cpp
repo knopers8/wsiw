@@ -13,7 +13,7 @@ void linspace( float y0, float ymax, float steps, std::vector<float> & vec)
     }
 }
 
-void create_map(cv::Mat & to_polar_map_x, cv::Mat & to_polar_map_y, int N_s, int N_r, float r_n, float blind, int x_0, int y_0)
+void create_map(cv::Mat & to_polar_map, int N_s, int N_r, float r_n, float blind, int x_0, int y_0, int src_width)
 {
 // Function is responsible for creating cordinates map from cartesian space
 // to polar space.
@@ -40,9 +40,7 @@ void create_map(cv::Mat & to_polar_map_x, cv::Mat & to_polar_map_y, int N_s, int
 
     std::cout << "r length: " << r.size() << std::endl;
 
-    to_polar_map_x = cv::Mat( N_s*N_r, MAX_PIX_COUNT, CV_32S, double(0));
-    to_polar_map_y = cv::Mat( N_s*N_r, MAX_PIX_COUNT, CV_32S, double(0));
-
+    to_polar_map = cv::Mat( N_s*N_r, MAX_PIX_COUNT, CV_32S, double(0));
 
     for(int i = 0; i < N_r; i++)
     {
@@ -50,19 +48,15 @@ void create_map(cv::Mat & to_polar_map_x, cv::Mat & to_polar_map_y, int N_s, int
         {
             float in_R = r[i];
             float out_R = r[i+1]; //check if doesnt try to access not its memory
-//            if( (j==0 || j==39) && i<3){
-//                std::cout << (N_s*i+j)*MAX_PIX_COUNT*2 << std::endl;
-//            if ( i == 0 && j == 0){
-//                std::cout << x_0 << " " << y_0 << " " << in_R << " " << out_R << " " << theta[j] << " " << theta[j+1] << std::endl;
-                get_polar_pixel( (int32_t *)&to_polar_map_x.data[(N_s*i+j)*MAX_PIX_COUNT*4], (int32_t *)&to_polar_map_y.data[(N_s*i+j)*MAX_PIX_COUNT*4], x_0, y_0, in_R, out_R, theta[j], theta[j+1] );
 
-//            }
+            get_polar_pixel( (int32_t *)&to_polar_map.data[(N_s*i+j)*MAX_PIX_COUNT*4], x_0, y_0, in_R, out_R, theta[j], theta[j+1], src_width );
+
         }
     }
 
 }
 
-void get_polar_pixel(int32_t * x_coords, int32_t * y_coords, int x_0, int y_0, float r_min, float r_max, float thet_min, float thet_max )
+void get_polar_pixel(int32_t * coords, int x_0, int y_0, float r_min, float r_max, float thet_min, float thet_max, int src_width )
 {
     int x_corners[4] = { r_min*cos(thet_min) + x_0, r_min*cos(thet_max) + x_0, r_max*cos(thet_min) + x_0, r_max*cos(thet_max) + x_0};
     int y_corners[4] = { r_min*sin(thet_min) + y_0, r_min*sin(thet_max) + y_0, r_max*sin(thet_min) + y_0, r_max*sin(thet_max) + y_0};
@@ -86,10 +80,6 @@ void get_polar_pixel(int32_t * x_coords, int32_t * y_coords, int x_0, int y_0, f
         y_span.push_back( i );
     }
 
-
-//    x_coordinates.clear();
-//    y_coordinates.clear();
-
     for( auto&& x_el : x_span)
     {
         for( auto&& y_el : y_span)
@@ -102,13 +92,7 @@ void get_polar_pixel(int32_t * x_coords, int32_t * y_coords, int x_0, int y_0, f
 
             if ( r >= r_min && r <= r_max && thet >= thet_min && thet <= thet_max)
             {
-                *x_coords = (int32_t) x_el;
-                *y_coords = (int32_t) y_el;
-                x_coords++;
-                y_coords++;
-//                x_coordinates.push_back( x_el );
-//                y_coordinates.push_back( y_el );
-//                std::cout << x_el << " " << y_el << " " << r << " " << thet << std::endl;
+                *coords++ = (int32_t) x_el*src_width + y_el;
             }
         }
     }
