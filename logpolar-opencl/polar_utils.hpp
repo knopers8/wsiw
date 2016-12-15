@@ -15,9 +15,9 @@
 
 void linspace( float y0, float ymax, float steps, std::vector<float> & vec);
 
-void create_map(cv::Mat & to_polar_map, int N_s, int N_r, float r_n, float blind, int x_0, int y_0, int src_width);
+void create_maps(cv::Mat & to_polar_map, cv::Mat & to_cart_map, int N_s, int N_r, float r_n, float blind, int x_0, int y_0, int src_width, int src_height);
 
-void get_polar_pixel(int32_t * coords, int x_0, int y_0, float r_min, float r_max, float thet_min, float thet_max, int src_width );
+void get_polar_pixel(int32_t * polar_coords, int32_t * cart_coords, int x_0, int y_0, float r_min, float r_max, float thet_min, float thet_max, int src_width, int N_s, int i, int j );
 
 void to_polar_c( uchar* input, int32_t* to_polar_map_x, int32_t* to_polar_map_y, uchar* output);
 

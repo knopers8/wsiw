@@ -1,13 +1,3 @@
-//__kernel void to_logpolar(
-//    __global int* In,
-//    __global int* Out)
-//{
-//    int i = get_global_id(0);
-//    int j = get_global_id(1);
-//
-//    Out[i*N+j] = In[i*N+j];
-//}
-
 
 __kernel void to_polar_C1_D0(
    __read_only __global uchar* input,
@@ -16,7 +6,7 @@ __kernel void to_polar_C1_D0(
     __write_only __global uchar* output)
 {
 
-//    int i = get_global_id(0);
+    int i = get_global_id(0);
     int j = get_global_id(1);
 
     int read_pos;
@@ -32,26 +22,39 @@ __kernel void to_polar_C1_D0(
     int map_local[128];
 
 
-    a = (N_s*j)*max_pix_count;
-    for( int i = 0; i < N_s; i++)
-    {
-        a += max_pix_count;
+    a = (N_s*j+i)*max_pix_count;
 
-        acc = 0;
-        for( k = 0; k < max_pix_count; k++)
+    acc = 0;
+    for( k = 0; k < max_pix_count; k++)
+    {
+        read_pos = to_polar_map[k + a];
+        if ( read_pos > 0 )
         {
-            read_pos = to_polar_map[k + a];
-            if ( read_pos > 0 )
-            {
-                acc += input[read_pos];
-            }
-            else
-            {
-                break;
-            }
+            acc += input[read_pos];
         }
-        output[step*j+i] = k>0 ? acc/k : 0;
+        else
+        {
+            break;
+        }
     }
+    output[step*j+i] = k>0 ? acc/k : 0;
+//    if (i == 127 && j ==127)
+//        printf("topolar pix: %d\n", acc/k);
 
 }
 
+
+__kernel void to_cart_C1_D0(
+   __read_only __global uchar* input,
+   __read_only __global int* to_cart_map,
+//   __read_only __constant int* params,
+    __write_only __global uchar* output)
+{
+
+    int i = get_global_id(0);
+    int j = get_global_id(1);
+
+    int addr = to_cart_map[i+(j*512)];
+    output[i+j*512] = addr ? input[ addr ] : 0;
+
+}

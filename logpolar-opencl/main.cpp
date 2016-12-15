@@ -9,7 +9,7 @@
 
 
 #define PI 3.14159265359
-#define MAX_PIX_COUNT 128
+#define MAX_PIX_COUNT 256
 
 #include "polar_utils.hpp"
 #include "util.hpp"
@@ -18,7 +18,7 @@
 //delete 'x' to activate
 #define xC_MODEL
 #define WEBCAM
-
+#define WEBCAM_IMG_SIZE 512
 
 
 int main(int argc, const char** argv)
@@ -70,7 +70,9 @@ int main(int argc, const char** argv)
 		return 11;
 
     cv::cvtColor(mat_src, mat_src, CV_BGR2GRAY);
-    cv::resize(mat_src, mat_src, {256, 256}, 0, 0, CV_INTER_NN);
+    cv::resize(mat_src, mat_src, {WEBCAM_IMG_SIZE, WEBCAM_IMG_SIZE}, 0, 0, CV_INTER_NN);
+
+    std::cout << "Source size: " << mat_src.cols << " " << mat_src.rows << std::endl;
 
 #else
 
@@ -90,10 +92,10 @@ int main(int argc, const char** argv)
     // polar transformation init
     //-----------------------------------------------------
     int blind = 10; // radius of blind spot, can be 0
-    int N_r = 40;   //number of rings
-    int r_max = 100; // outer raius of last ring
+    int N_r = 128;   //number of rings
+    int r_max = 250; // outer raius of last ring
     float r_n = (r_max-blind)/(float)N_r;   // radius of n-th ring = n*r_n n=0:N_r-1;
-    int N_s = 40; // number of slices, just like pizza. Find better name and let me know. Number of part to divide every ring.
+    int N_s = 128; // number of slices, just like pizza. Find better name and let me know. Number of part to divide every ring.
 
     int src_height = mat_src.rows;
     int src_width = mat_src.cols;
@@ -102,26 +104,34 @@ int main(int argc, const char** argv)
     int center_w = src_width/2;
 
     cv::Mat to_polar_map;
-    create_map(to_polar_map, N_s, N_r, r_n, blind, center_h, center_w, src_width);
+    cv::Mat to_cart_map;
+    std::cout << "Creating maps" << std::endl;
+    create_maps(to_polar_map, to_cart_map, N_s, N_r, r_n, blind, center_h, center_w, src_width, src_height);
+    std::cout << "Maps created" << std::endl;
+
+//    int32_t * cart_coords = (int32_t *)to_cart_map.data;// + src_width*128;
+//    std::ofstream myfile;
+//    myfile.open ("to_cart_map.txt");
+//
+//    for(int i = 0; i < src_width; i++)
+//    {
+//        for( int j = 0 ; j < src_height; j++)
+//        {
+//            myfile << std::setw(10) << *(cart_coords++) << " ";
+//        }
+//        myfile << std::endl;
+//    }
+//    myfile.close();
+//    return 0;
 
     //create params vector
     int step;
-    for( step = 0; step < N_s; step += 64);
+    for( step = 0; step < N_s; step += 32);
     std::vector<int> params = { MAX_PIX_COUNT, N_s, N_r, src_height, src_width, step};
 
-    cv::Mat mat_dst = cv::Mat( N_r, N_s, mat_src.type(), double(0));
-    cv::Mat result_display;
-
-//    int a = MAX_PIX_COUNT*2*(40*39+39);
-//
-//    for( int i=a; i< a+280; i += 2)
-//    {
-//        std::cout << (((int16_t)to_polar_map_x.data[i+1] << 8)) + (int16_t)to_polar_map_x.data[i] << " ";
-//        std::cout << (((int16_t)to_polar_map_y.data[i+1] << 8)) + (int16_t)to_polar_map_y.data[i]  << std::endl;
-//    }
-
-
-
+    cv::Mat mat_polar = cv::Mat( N_r, N_s, mat_src.type(), double(0));
+    cv::Mat mat_cart = cv::Mat( src_height, src_width, mat_src.type(), double(0));
+    cv::Mat polar_result_display;
 
 
 #ifdef C_MODEL
@@ -136,8 +146,9 @@ int main(int argc, const char** argv)
     //-----------------------------------------------------
 
     cv::ocl::oclMat ocl_to_polar_map( to_polar_map );
-//    cv::ocl::oclMat ocl_to_polar_map_y( to_polar_map_y );
     cv::ocl::oclMat ocl_params( {params.size(), 1}, CV_32S, (void *) params.data() );
+
+    cv::ocl::oclMat ocl_to_cart_map( to_cart_map );
 
    //-----------------------------------------------------
     //load kernel source code and init program
@@ -148,21 +159,26 @@ int main(int argc, const char** argv)
                             std::istreambuf_iterator<char>());
 
     cv::ocl::ProgramSource program("to_polar", contents.c_str());
+    cv::ocl::ProgramSource program_to_cart("to_cart", contents.c_str());
     in.close();
 
-    printf("mat step: %d total: %d sizeof(cl_mem): %d\n", mat_dst.step1(), mat_dst.total(), sizeof(cl_mem));
-    std::size_t globalThreads[3] = { 1, N_r, 1}; //mat_dst.step1(), N_r, 1};
+    //sprintf("mat step: %d total: %d sizeof(cl_mem): %d\n", mat_dst.step1(), mat_dst.total(), sizeof(cl_mem));
+    std::size_t polarGlobalThreads[3] = { N_s, N_r, 1}; //mat_dst.step1(), N_r, 1};
+    std::size_t cartGlobalThreads[3] = { src_height, src_width, 1};
     //std::size_t localThreads[3] = {};
-    std::vector<std::pair<size_t , const void *> > args(4);
+    std::vector<std::pair<size_t , const void *> > to_polar_args(4);
+    std::vector<std::pair<size_t , const void *> > to_cart_args(3);
 
 
 
-    args[1] =  std::make_pair( sizeof(cl_mem), (void *) &ocl_to_polar_map.data );
-//    args[2] =  std::make_pair( sizeof(cl_mem), (void *) &ocl_to_polar_map_y.data );
-    args[2] =  std::make_pair( sizeof(cl_mem), (void *) &ocl_params.data );
+    to_polar_args[1] =  std::make_pair( sizeof(cl_mem), (void *) &ocl_to_polar_map.data );
+    to_polar_args[2] =  std::make_pair( sizeof(cl_mem), (void *) &ocl_params.data );
+
+    to_cart_args[1] =  std::make_pair( sizeof(cl_mem), (void *) &ocl_to_cart_map.data );
 
     cv::ocl::oclMat ocl_src;
-    cv::ocl::oclMat ocl_dst;
+    cv::ocl::oclMat ocl_polar;
+    cv::ocl::oclMat ocl_cart;
 
 #ifdef WEBCAM
     while(cap.read(mat_src))
@@ -172,28 +188,42 @@ int main(int argc, const char** argv)
 //    mat_src = mat_src(crop);
 
     cv::cvtColor(mat_src, mat_src, CV_BGR2GRAY);
-    cv::resize(mat_src, mat_src, {256, 256}, 0, 0, CV_INTER_NN);
+    cv::resize(mat_src, mat_src, {WEBCAM_IMG_SIZE, WEBCAM_IMG_SIZE}, 0, 0, CV_INTER_NN);
 #endif //WEBCAM
 
-    cl_start_time = static_cast<double>(timer.getTimeMilliseconds()) / 1000.0;
+    cl_start_time = static_cast<double>(timer.getTimeMicroseconds()) / 1000.0;
 
     ocl_src = mat_src;
-    ocl_dst = mat_dst;
+    ocl_polar = mat_polar;
 
-    args[0] = std::make_pair( sizeof(cl_mem), (void *) &ocl_src.data );
-    args[3] = std::make_pair( sizeof(cl_mem), (void *) &ocl_dst.data );
+    to_polar_args[0] = std::make_pair( sizeof(cl_mem), (void *) &ocl_src.data );
+    to_polar_args[3] = std::make_pair( sizeof(cl_mem), (void *) &ocl_polar.data );
 
     //-----------------------------------------------------
     //execute kernel
     //-----------------------------------------------------
 
     cv::ocl::openCLExecuteKernelInterop(cv::ocl::Context::getContext(),
-        program, "to_polar", globalThreads, NULL, args, channels, depth, NULL);
-    ocl_dst.download(mat_dst);
-
-    cl_run_time  = (static_cast<double>(timer.getTimeMilliseconds()) / 1000.0) - cl_start_time;
+        program, "to_polar", polarGlobalThreads, NULL, to_polar_args, channels, depth, NULL);
+    ocl_polar.download(mat_polar);
 
 
+
+    //back to cartesian
+//    std::cout << "back to cartesian\n";
+    ocl_src = mat_polar;
+    ocl_cart = mat_cart;
+//    std::cout << "args\n";
+    to_cart_args[0] = std::make_pair( sizeof(cl_mem), (void *) &ocl_src.data );
+    to_cart_args[2] = std::make_pair( sizeof(cl_mem), (void *) &ocl_cart.data );
+//    std::cout << "execute\n";
+    cv::ocl::openCLExecuteKernelInterop(cv::ocl::Context::getContext(),
+        program_to_cart, "to_cart", cartGlobalThreads, NULL, to_cart_args, channels, depth, NULL);
+//    std::cout << "download\n";
+    ocl_cart.download(mat_cart);
+//    std::cout << "cartesian done\n";
+
+    cl_run_time  = (static_cast<double>(timer.getTimeMicroseconds()) / 1000.0) - cl_start_time;
 
 #endif //C_MODEL
 
@@ -201,24 +231,26 @@ int main(int argc, const char** argv)
     //-----------------------------------------------------
     //show results
     //-----------------------------------------------------
-    cv::resize(mat_dst, result_display, {N_r*4, N_s*4}, 0, 0, CV_INTER_NN);
-
+    cv::resize(mat_polar, polar_result_display, {N_s*4, N_r*4}, 0, 0, CV_INTER_NN);
+//    polar_result_display = mat_dst;
 
     cv::namedWindow("Source");
     cv::namedWindow("Polar");
+    cv::namedWindow("Cart");
     cv::imshow("Source", mat_src);
-    cv::imshow("Polar", result_display);
+    cv::imshow("Polar", polar_result_display);
+    cv::imshow("Cart", mat_cart);
 
 #ifdef WEBCAM
 
     loop_run_time = (static_cast<double>(timer.getTimeMilliseconds()) / 1000.0) - loop_start_time;
-    printf("\bLoop: %.3f s, OpenCL: %.3f s - %.0f\% \n", loop_run_time, cl_run_time, 100*cl_run_time/loop_run_time);
+    printf("\bLoop: %.3f s, OpenCL: %.3f ms - %.0f\% \n", loop_run_time, cl_run_time, 0.1*cl_run_time/loop_run_time);
     loop_start_time = static_cast<double>(timer.getTimeMilliseconds()) / 1000.0;
     cv::waitKey(1); //ms
     }
 #else
 
-    printf("OpenCL runtime %.3f seconds\n",  cl_run_time);
+    printf("OpenCL runtime %.3f ms\n",  cl_run_time);
 
 #endif // WEBCAM
 

@@ -13,7 +13,7 @@ void linspace( float y0, float ymax, float steps, std::vector<float> & vec)
     }
 }
 
-void create_map(cv::Mat & to_polar_map, int N_s, int N_r, float r_n, float blind, int x_0, int y_0, int src_width)
+void create_maps(cv::Mat & to_polar_map, cv::Mat & to_cart_map, int N_s, int N_r, float r_n, float blind, int x_0, int y_0, int src_width, int src_height )
 {
 // Function is responsible for creating cordinates map from cartesian space
 // to polar space.
@@ -41,6 +41,7 @@ void create_map(cv::Mat & to_polar_map, int N_s, int N_r, float r_n, float blind
     std::cout << "r length: " << r.size() << std::endl;
 
     to_polar_map = cv::Mat( N_s*N_r, MAX_PIX_COUNT, CV_32S, double(0));
+    to_cart_map = cv::Mat(src_height, src_width, CV_32S, double(0));
 
     for(int i = 0; i < N_r; i++)
     {
@@ -49,14 +50,19 @@ void create_map(cv::Mat & to_polar_map, int N_s, int N_r, float r_n, float blind
             float in_R = r[i];
             float out_R = r[i+1]; //check if doesnt try to access not its memory
 
-            get_polar_pixel( (int32_t *)&to_polar_map.data[(N_s*i+j)*MAX_PIX_COUNT*4], x_0, y_0, in_R, out_R, theta[j], theta[j+1], src_width );
+            get_polar_pixel( (int32_t *)&to_polar_map.data[(N_s*i+j)*MAX_PIX_COUNT*4],
+                             (int32_t *)to_cart_map.data,
+                             x_0, y_0,
+                             in_R, out_R,
+                             theta[j], theta[j+1],
+                             src_width, N_s, i, j );
 
         }
     }
 
 }
 
-void get_polar_pixel(int32_t * coords, int x_0, int y_0, float r_min, float r_max, float thet_min, float thet_max, int src_width )
+void get_polar_pixel(int32_t * polar_coords, int32_t * cart_coords, int x_0, int y_0, float r_min, float r_max, float thet_min, float thet_max, int src_width, int N_s, int i, int j )
 {
     int x_corners[4] = { r_min*cos(thet_min) + x_0, r_min*cos(thet_max) + x_0, r_max*cos(thet_min) + x_0, r_max*cos(thet_max) + x_0};
     int y_corners[4] = { r_min*sin(thet_min) + y_0, r_min*sin(thet_max) + y_0, r_max*sin(thet_min) + y_0, r_max*sin(thet_max) + y_0};
@@ -92,7 +98,10 @@ void get_polar_pixel(int32_t * coords, int x_0, int y_0, float r_min, float r_ma
 
             if ( r >= r_min && r <= r_max && thet >= thet_min && thet <= thet_max)
             {
-                *coords++ = (int32_t) x_el*src_width + y_el;
+                *polar_coords++ = (int32_t) x_el*src_width + y_el;
+//                std::cout << "x_el*src_width + y_el " << x_el*src_width + y_el << std::endl;
+                cart_coords[x_el*src_width + y_el] = (int32_t) i*N_s + j;
+
             }
         }
     }
