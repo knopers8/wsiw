@@ -60,7 +60,8 @@ int main(int argc, const char** argv)
     //-----------------------------------------------------
 
 #ifdef WEBCAM
-    cv::VideoCapture cap(0);
+    cv::VideoCapture cap(0);// + CV_CAP_DSHOW);
+    cap.set(CV_CAP_PROP_FPS,30);
     cv::Mat mat_src;
 
 	if (!cap.isOpened())  // check if we succeeded
@@ -92,7 +93,7 @@ int main(int argc, const char** argv)
     // polar transformation init
     //-----------------------------------------------------
     int blind = 10; // radius of blind spot, can be 0
-    int N_r = 128;   //number of rings
+    int N_r = 64;   //number of rings
     int r_max = 250; // outer raius of last ring
     float r_n = (r_max-blind)/(float)N_r;   // radius of n-th ring = n*r_n n=0:N_r-1;
     int N_s = 128; // number of slices, just like pizza. Find better name and let me know. Number of part to divide every ring.
@@ -211,10 +212,10 @@ int main(int argc, const char** argv)
 
     //back to cartesian
 //    std::cout << "back to cartesian\n";
-    ocl_src = mat_polar;
+    //ocl_src = mat_polar;
     ocl_cart = mat_cart;
 //    std::cout << "args\n";
-    to_cart_args[0] = std::make_pair( sizeof(cl_mem), (void *) &ocl_src.data );
+    to_cart_args[0] = std::make_pair( sizeof(cl_mem), (void *) &ocl_polar.data );
     to_cart_args[2] = std::make_pair( sizeof(cl_mem), (void *) &ocl_cart.data );
 //    std::cout << "execute\n";
     cv::ocl::openCLExecuteKernelInterop(cv::ocl::Context::getContext(),
