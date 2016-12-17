@@ -25,7 +25,7 @@ void create_maps(cv::Mat & to_polar_map, cv::Mat & to_cart_map, int N_s, int N_r
 // polar_img - ready polar image, displaying and debugging mostly
 // show_polar_pixels - polar image displayed in cartesian space
     float thet_0 = 0; //beggining of theta ragne
-    float thet_max = 2*PI;//-0.001; //end of theta ragne
+    float thet_max = 2*PI-0.001; //end of theta ragne
 
     std::vector<float> theta;
     linspace( thet_0, thet_max, N_s+1, theta);

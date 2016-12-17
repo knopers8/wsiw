@@ -8,8 +8,8 @@
 #include <iomanip>
 
 
-#define PI 3.14159265359
-#define MAX_PIX_COUNT 256
+#define PI (3.14159265359)
+#define MAX_PIX_COUNT (256)
 
 #include "polar_utils.hpp"
 #include "util.hpp"
@@ -18,7 +18,8 @@
 //delete 'x' to activate
 #define xC_MODEL
 #define WEBCAM
-#define WEBCAM_IMG_SIZE 512
+#define WEBCAM_IMG_SIZE (512)
+#define GRAYSCALEx
 
 
 int main(int argc, const char** argv)
@@ -61,7 +62,7 @@ int main(int argc, const char** argv)
 
 #ifdef WEBCAM
     cv::VideoCapture cap(0);// + CV_CAP_DSHOW);
-    cap.set(CV_CAP_PROP_FPS,30);
+//    cap.set(CV_CAP_PROP_FPS,30);
     cv::Mat mat_src;
 
 	if (!cap.isOpened())  // check if we succeeded
@@ -69,11 +70,12 @@ int main(int argc, const char** argv)
 
     if (!cap.read(mat_src))
 		return 11;
-
+#ifdef GRAYSCALE
     cv::cvtColor(mat_src, mat_src, CV_BGR2GRAY);
+#endif
     cv::resize(mat_src, mat_src, {WEBCAM_IMG_SIZE, WEBCAM_IMG_SIZE}, 0, 0, CV_INTER_NN);
 
-    std::cout << "Source size: " << mat_src.cols << " " << mat_src.rows << std::endl;
+    std::cout << "Source size: " << mat_src.cols << " " << mat_src.rows << " step: " << mat_src.step << std::endl;
 
 #else
 
@@ -126,9 +128,11 @@ int main(int argc, const char** argv)
 //    return 0;
 
     //create params vector
-    int step;
-    for( step = 0; step < N_s; step += 32);
-    std::vector<int> params = { MAX_PIX_COUNT, N_s, N_r, src_height, src_width, step};
+    int polar_step;
+    for( polar_step = 0; polar_step < N_s; polar_step += 32);
+    int cart_step;
+    for( cart_step = 0; cart_step < src_width; cart_step += 32);
+    std::vector<int> params = { MAX_PIX_COUNT, N_s, N_r, src_height, src_width, polar_step, cart_step};
 
     cv::Mat mat_polar = cv::Mat( N_r, N_s, mat_src.type(), double(0));
     cv::Mat mat_cart = cv::Mat( src_height, src_width, mat_src.type(), double(0));
@@ -168,7 +172,7 @@ int main(int argc, const char** argv)
     std::size_t cartGlobalThreads[3] = { src_height, src_width, 1};
     //std::size_t localThreads[3] = {};
     std::vector<std::pair<size_t , const void *> > to_polar_args(4);
-    std::vector<std::pair<size_t , const void *> > to_cart_args(3);
+    std::vector<std::pair<size_t , const void *> > to_cart_args(4);
 
 
 
@@ -176,6 +180,7 @@ int main(int argc, const char** argv)
     to_polar_args[2] =  std::make_pair( sizeof(cl_mem), (void *) &ocl_params.data );
 
     to_cart_args[1] =  std::make_pair( sizeof(cl_mem), (void *) &ocl_to_cart_map.data );
+    to_cart_args[2] =  std::make_pair( sizeof(cl_mem), (void *) &ocl_params.data );
 
     cv::ocl::oclMat ocl_src;
     cv::ocl::oclMat ocl_polar;
@@ -187,8 +192,9 @@ int main(int argc, const char** argv)
 
 //    cv::Rect crop(0, 0, 255, 255);
 //    mat_src = mat_src(crop);
-
+#ifdef GRAYSCALE
     cv::cvtColor(mat_src, mat_src, CV_BGR2GRAY);
+#endif
     cv::resize(mat_src, mat_src, {WEBCAM_IMG_SIZE, WEBCAM_IMG_SIZE}, 0, 0, CV_INTER_NN);
 #endif //WEBCAM
 
@@ -216,7 +222,7 @@ int main(int argc, const char** argv)
     ocl_cart = mat_cart;
 //    std::cout << "args\n";
     to_cart_args[0] = std::make_pair( sizeof(cl_mem), (void *) &ocl_polar.data );
-    to_cart_args[2] = std::make_pair( sizeof(cl_mem), (void *) &ocl_cart.data );
+    to_cart_args[3] = std::make_pair( sizeof(cl_mem), (void *) &ocl_cart.data );
 //    std::cout << "execute\n";
     cv::ocl::openCLExecuteKernelInterop(cv::ocl::Context::getContext(),
         program_to_cart, "to_cart", cartGlobalThreads, NULL, to_cart_args, channels, depth, NULL);
