@@ -4,7 +4,7 @@
 	<sys/time.h>
 	<stdlib.h>
 
-1481991473 source:d:\programowanie\wsiw\logpolar-opencl\main.cpp
+1482075823 source:d:\programowanie\wsiw\logpolar-opencl\main.cpp
 	<opencv2/core/core.hpp>
 	<opencv2/highgui/highgui.hpp>
 	<opencv2/ocl/ocl.hpp>
@@ -158,7 +158,7 @@
 1387532998 c:\opencv\opencv\build\include\opencv2\ocl\matrix_operations.hpp
 	"opencv2/ocl/ocl.hpp"
 
-1481989866 d:\programowanie\wsiw\logpolar-opencl\polar_utils.hpp
+1482075565 d:\programowanie\wsiw\logpolar-opencl\polar_utils.hpp
 	<vector>
 	<algorithm>
 	<cmath>

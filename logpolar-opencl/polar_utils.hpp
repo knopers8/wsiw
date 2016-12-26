@@ -8,9 +8,9 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/ocl/ocl.hpp>
 
-#define MAX_PIX_COUNT 128
+#define MAX_PIX_COUNT (128)
 
-#define PI 3.14159265359
+#define PI (3.14159265359)
 
 
 void linspace( float y0, float ymax, float steps, std::vector<float> & vec);

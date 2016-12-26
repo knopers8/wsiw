@@ -20,6 +20,7 @@
 #define WEBCAM
 #define WEBCAM_IMG_SIZE (512)
 #define GRAYSCALEx
+#define WRITE_PERFORMANCE_TO_FILE
 
 
 int main(int argc, const char** argv)
@@ -31,8 +32,20 @@ int main(int argc, const char** argv)
     double cl_start_time = 0;
     double loop_run_time = 0;
     double cl_run_time = 0;
+    double cl_to_polar_time = 0;
+    double cl_to_cart_time = 0;
     util::Timer timer;
 
+
+    //-----------------------------------------------------
+    // performance results file init
+    //-----------------------------------------------------
+#ifdef WRITE_PERFORMANCE_TO_FILE
+
+    std::ofstream performance_file;
+    performance_file.open("performance.txt");
+
+#endif //WRITE_PERFORMANCE_TO_FILE
     //-----------------------------------------------------
     // device init
     //-----------------------------------------------------
@@ -80,7 +93,9 @@ int main(int argc, const char** argv)
 #else
 
     cv::Mat mat_src = cv::imread("cameraman.tif", cv::IMREAD_GRAYSCALE);
-
+//    cv::Rect crop(0, 512, 1024, 512+512);
+//    mat_src = mat_src(crop);
+    cv::resize(mat_src, mat_src, {WEBCAM_IMG_SIZE, WEBCAM_IMG_SIZE}, 0, 0, CV_INTER_NN);
     if(mat_src.empty())
     {
         std::cerr << "Failed to open image file." << std::endl;
@@ -95,7 +110,7 @@ int main(int argc, const char** argv)
     // polar transformation init
     //-----------------------------------------------------
     int blind = 10; // radius of blind spot, can be 0
-    int N_r = 64;   //number of rings
+    int N_r = 128;   //number of rings
     int r_max = 250; // outer raius of last ring
     float r_n = (r_max-blind)/(float)N_r;   // radius of n-th ring = n*r_n n=0:N_r-1;
     int N_s = 128; // number of slices, just like pizza. Find better name and let me know. Number of part to divide every ring.
@@ -200,6 +215,7 @@ int main(int argc, const char** argv)
 
     cl_start_time = static_cast<double>(timer.getTimeMicroseconds()) / 1000.0;
 
+
     ocl_src = mat_src;
     ocl_polar = mat_polar;
 
@@ -214,23 +230,17 @@ int main(int argc, const char** argv)
         program, "to_polar", polarGlobalThreads, NULL, to_polar_args, channels, depth, NULL);
     ocl_polar.download(mat_polar);
 
+    cl_to_polar_time = static_cast<double>(timer.getTimeMicroseconds()) / 1000.0 - cl_start_time;
 
-
-    //back to cartesian
-//    std::cout << "back to cartesian\n";
-    //ocl_src = mat_polar;
     ocl_cart = mat_cart;
-//    std::cout << "args\n";
     to_cart_args[0] = std::make_pair( sizeof(cl_mem), (void *) &ocl_polar.data );
     to_cart_args[3] = std::make_pair( sizeof(cl_mem), (void *) &ocl_cart.data );
-//    std::cout << "execute\n";
     cv::ocl::openCLExecuteKernelInterop(cv::ocl::Context::getContext(),
         program_to_cart, "to_cart", cartGlobalThreads, NULL, to_cart_args, channels, depth, NULL);
-//    std::cout << "download\n";
     ocl_cart.download(mat_cart);
-//    std::cout << "cartesian done\n";
 
     cl_run_time  = (static_cast<double>(timer.getTimeMicroseconds()) / 1000.0) - cl_start_time;
+    cl_to_cart_time = cl_run_time - cl_to_polar_time;
 
 #endif //C_MODEL
 
@@ -248,11 +258,20 @@ int main(int argc, const char** argv)
     cv::imshow("Polar", polar_result_display);
     cv::imshow("Cart", mat_cart);
 
+
 #ifdef WEBCAM
 
     loop_run_time = (static_cast<double>(timer.getTimeMilliseconds()) / 1000.0) - loop_start_time;
-    printf("\bLoop: %.3f s, OpenCL: %.3f ms - %.0f\% \n", loop_run_time, cl_run_time, 0.1*cl_run_time/loop_run_time);
+    printf("\bLoop: %.3f s, OpenCL: %.3f ms - %.0f\%, to polar: %.3f ms, to cart: %.3f ms \n",
+            loop_run_time, cl_run_time, 0.1*cl_run_time/loop_run_time, cl_to_polar_time, cl_to_cart_time);
     loop_start_time = static_cast<double>(timer.getTimeMilliseconds()) / 1000.0;
+
+#ifdef WRITE_PERFORMANCE_TO_FILE
+
+    performance_file << loop_run_time*1000 << " " << cl_run_time << " " << cl_to_polar_time << " " << cl_to_cart_time << std::endl;
+
+#endif // WRITE_PERFORMANCE_TO_FILE
+
     cv::waitKey(1); //ms
     }
 #else
@@ -260,6 +279,11 @@ int main(int argc, const char** argv)
     printf("OpenCL runtime %.3f ms\n",  cl_run_time);
 
 #endif // WEBCAM
+
+#ifdef WRITE_PERFORMANCE_TO_FILE
+    performance_file.close();
+#endif // WRITE_PERFORMANCE_TO_FILE
+
 
     cv::waitKey(0);
     cv::destroyAllWindows();
