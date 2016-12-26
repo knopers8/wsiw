@@ -9,19 +9,20 @@
 
 
 #define PI (3.14159265359)
-#define MAX_PIX_COUNT (256)
+#define MAX_PIX_COUNT (32)
 
 #include "polar_utils.hpp"
 #include "util.hpp"
 
-
 //delete 'x' to activate
-#define xC_MODEL
+#define C_MODELx
 #define WEBCAM
-#define WEBCAM_IMG_SIZE (512)
+#define MOVIEx
 #define GRAYSCALEx
-#define WRITE_PERFORMANCE_TO_FILE
+#define WRITE_PERFORMANCE_TO_FILEx
+#define SHOW_OUTPUTS
 
+#define WEBCAM_IMG_SIZE (512)
 
 int main(int argc, const char** argv)
 {
@@ -73,9 +74,13 @@ int main(int argc, const char** argv)
     //image source init
     //-----------------------------------------------------
 
+#if defined(WEBCAM) || defined(MOVIE)
 #ifdef WEBCAM
     cv::VideoCapture cap(0);// + CV_CAP_DSHOW);
-//    cap.set(CV_CAP_PROP_FPS,30);
+#else //MOVIE
+    cv::VideoCapture cap("CAM00943.mp4");
+#endif // WEBCAM
+
     cv::Mat mat_src;
 
 	if (!cap.isOpened())  // check if we succeeded
@@ -89,7 +94,6 @@ int main(int argc, const char** argv)
     cv::resize(mat_src, mat_src, {WEBCAM_IMG_SIZE, WEBCAM_IMG_SIZE}, 0, 0, CV_INTER_NN);
 
     std::cout << "Source size: " << mat_src.cols << " " << mat_src.rows << " step: " << mat_src.step << std::endl;
-
 #else
 
     cv::Mat mat_src = cv::imread("cameraman.tif", cv::IMREAD_GRAYSCALE);
@@ -201,7 +205,7 @@ int main(int argc, const char** argv)
     cv::ocl::oclMat ocl_polar;
     cv::ocl::oclMat ocl_cart;
 
-#ifdef WEBCAM
+#if defined(WEBCAM) || defined(MOVIE)
     while(cap.read(mat_src))
     {
 
@@ -250,25 +254,27 @@ int main(int argc, const char** argv)
     //-----------------------------------------------------
     cv::resize(mat_polar, polar_result_display, {N_s*4, N_r*4}, 0, 0, CV_INTER_NN);
 //    polar_result_display = mat_dst;
-
+#ifdef SHOW_OUTPUTS
     cv::namedWindow("Source");
     cv::namedWindow("Polar");
     cv::namedWindow("Cart");
     cv::imshow("Source", mat_src);
     cv::imshow("Polar", polar_result_display);
     cv::imshow("Cart", mat_cart);
+#endif
 
+#if defined(WEBCAM) || defined(MOVIE)
 
-#ifdef WEBCAM
-
-    loop_run_time = (static_cast<double>(timer.getTimeMilliseconds()) / 1000.0) - loop_start_time;
-    printf("\bLoop: %.3f s, OpenCL: %.3f ms - %.0f\%, to polar: %.3f ms, to cart: %.3f ms \n",
-            loop_run_time, cl_run_time, 0.1*cl_run_time/loop_run_time, cl_to_polar_time, cl_to_cart_time);
-    loop_start_time = static_cast<double>(timer.getTimeMilliseconds()) / 1000.0;
+    loop_run_time = (static_cast<double>(timer.getTimeMicroseconds()) / 1000.0) - loop_start_time;
+#ifdef SHOW_OUTPUTS
+    printf("\bLoop: %.3f ms, OpenCL: %.3f ms - %.0f\%, to polar: %.3f ms, to cart: %.3f ms \n",
+            loop_run_time, cl_run_time, 100*cl_run_time/loop_run_time, cl_to_polar_time, cl_to_cart_time);
+#endif
+    loop_start_time = static_cast<double>(timer.getTimeMicroseconds()) / 1000.0;
 
 #ifdef WRITE_PERFORMANCE_TO_FILE
 
-    performance_file << loop_run_time*1000 << " " << cl_run_time << " " << cl_to_polar_time << " " << cl_to_cart_time << std::endl;
+    performance_file << loop_run_time << " " << cl_run_time << " " << cl_to_polar_time << " " << cl_to_cart_time << std::endl;
 
 #endif // WRITE_PERFORMANCE_TO_FILE
 
