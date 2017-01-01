@@ -72,7 +72,7 @@ __kernel void to_polar_C3_D0(
     int acc_r = 0;
     int acc_g = 0;
     int acc_b = 0;
-    uint pix = 0;
+    union{ uint ui; uchar4 uch; } pix;// = 0;
     int k;
 
     //params: MAX_PIX_COUNT, N_s, N_r, src_height, src_width, polar_step, cart_step
@@ -82,6 +82,7 @@ __kernel void to_polar_C3_D0(
     int src_width = params[4];
 //    int map_local[128];
 
+
     int a = (N_s*j+i)*max_pix_count;
 //blue = RGB & 0xff; green = (RGB >> 8) & 0xff; red = (RGB >> 16) & 0xff;
     for( k = 0; k < max_pix_count; k++)
@@ -89,10 +90,10 @@ __kernel void to_polar_C3_D0(
         read_pos = to_polar_map[k + a];
         if ( read_pos > 0 )
         {
-            pix = input[read_pos];
-            acc_b += pix & 0xff;
-            acc_g += (pix >> 8) & 0xff;
-            acc_r += (pix >> 16) & 0xff;
+            pix.ui = input[read_pos];
+            acc_b += pix.uch.s2;//pix & 0xff;
+            acc_g += pix.uch.s1;//(pix >> 8) & 0xff;
+            acc_r += pix.uch.s0;//(pix >> 16) & 0xff;
         }
         else
         {
@@ -101,10 +102,10 @@ __kernel void to_polar_C3_D0(
     }
     if( k > 0 )
     {
-        pix = acc_r/k;
-        pix = (pix << 8) | (acc_g/k);
-        pix = (pix << 8) | (acc_b/k);
-        output[step*j+i] = pix;
+        pix.uch.s0 = acc_r/k;
+        pix.uch.s1 = acc_g/k;//(pix << 8) | (acc_g/k);
+        pix.uch.s2 = acc_b/k;//(pix << 8) | (acc_b/k);
+        output[step*j+i] = pix.ui;
     }
     else
     {

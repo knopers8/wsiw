@@ -9,7 +9,7 @@
 
 
 #define PI (3.14159265359)
-#define MAX_PIX_COUNT (32)
+#define MAX_PIX_COUNT (128)
 
 #include "polar_utils.hpp"
 #include "util.hpp"
@@ -22,7 +22,7 @@
 #define WRITE_PERFORMANCE_TO_FILEx
 #define SHOW_OUTPUTS
 
-#define WEBCAM_IMG_SIZE (512)
+#define WEBCAM_IMG_SIZE (1024)
 
 int main(int argc, const char** argv)
 {
@@ -78,7 +78,7 @@ int main(int argc, const char** argv)
 #ifdef WEBCAM
     cv::VideoCapture cap(0);// + CV_CAP_DSHOW);
 #else //MOVIE
-    cv::VideoCapture cap("CAM00943.mp4");
+    cv::VideoCapture cap("20161230_153319.mp4");
 #endif // WEBCAM
 
     cv::Mat mat_src;
@@ -91,14 +91,17 @@ int main(int argc, const char** argv)
 #ifdef GRAYSCALE
     cv::cvtColor(mat_src, mat_src, CV_BGR2GRAY);
 #endif
+#ifdef WEBCAM
     cv::resize(mat_src, mat_src, {WEBCAM_IMG_SIZE, WEBCAM_IMG_SIZE}, 0, 0, CV_INTER_NN);
-
+#else //MOVIE
+//    cv::resize(mat_src, mat_src, {WEBCAM_IMG_SIZE, WEBCAM_IMG_SIZE}, 0, 0, CV_INTER_NN);
+    cv::Rect crop((mat_src.cols - mat_src.rows)/2, 0, mat_src.rows, mat_src.rows);
+    cv::Mat(mat_src(crop)).copyTo(mat_src);
+#endif
     std::cout << "Source size: " << mat_src.cols << " " << mat_src.rows << " step: " << mat_src.step << std::endl;
 #else
 
     cv::Mat mat_src = cv::imread("cameraman.tif", cv::IMREAD_GRAYSCALE);
-//    cv::Rect crop(0, 512, 1024, 512+512);
-//    mat_src = mat_src(crop);
     cv::resize(mat_src, mat_src, {WEBCAM_IMG_SIZE, WEBCAM_IMG_SIZE}, 0, 0, CV_INTER_NN);
     if(mat_src.empty())
     {
@@ -115,7 +118,7 @@ int main(int argc, const char** argv)
     //-----------------------------------------------------
     int blind = 10; // radius of blind spot, can be 0
     int N_r = 128;   //number of rings
-    int r_max = 250; // outer raius of last ring
+    int r_max = 500; // outer raius of last ring
     float r_n = (r_max-blind)/(float)N_r;   // radius of n-th ring = n*r_n n=0:N_r-1;
     int N_s = 128; // number of slices, just like pizza. Find better name and let me know. Number of part to divide every ring.
 
@@ -137,7 +140,7 @@ int main(int argc, const char** argv)
 //
 //    for(int i = 0; i < src_width; i++)
 //    {
-//        for( int j = 0 ; j < src_height; j++)
+//        for( int j = 0 ; j < src_height; j++)th
 //        {
 //            myfile << std::setw(10) << *(cart_coords++) << " ";
 //        }
@@ -205,6 +208,8 @@ int main(int argc, const char** argv)
     cv::ocl::oclMat ocl_polar;
     cv::ocl::oclMat ocl_cart;
 
+    std::cout << "Start\n";
+
 #if defined(WEBCAM) || defined(MOVIE)
     while(cap.read(mat_src))
     {
@@ -214,8 +219,16 @@ int main(int argc, const char** argv)
 #ifdef GRAYSCALE
     cv::cvtColor(mat_src, mat_src, CV_BGR2GRAY);
 #endif
+
+#ifdef WEBCAM
     cv::resize(mat_src, mat_src, {WEBCAM_IMG_SIZE, WEBCAM_IMG_SIZE}, 0, 0, CV_INTER_NN);
-#endif //WEBCAM
+#else
+//    cv::resize(mat_src, mat_src, {WEBCAM_IMG_SIZE, WEBCAM_IMG_SIZE}, 0, 0, CV_INTER_NN);
+//    cv::Rect crop(0, 0, 1024, 1024);
+    cv::Mat(mat_src(crop)).copyTo(mat_src);
+#endif
+
+#endif //WEBCAM or MOVIE
 
     cl_start_time = static_cast<double>(timer.getTimeMicroseconds()) / 1000.0;
 

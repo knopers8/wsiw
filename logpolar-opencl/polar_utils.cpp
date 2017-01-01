@@ -30,15 +30,11 @@ void create_maps(cv::Mat & to_polar_map, cv::Mat & to_cart_map, int N_s, int N_r
     std::vector<float> theta;
     linspace( thet_0, thet_max, N_s+1, theta);
 
-    std::cout << "theta length: " << theta.size() << std::endl;
-
     std::vector<float> r;
     for( int i = 0; i <= N_r; i++ )
     {
         r.push_back( i*r_n + blind);
     }
-
-    std::cout << "r length: " << r.size() << std::endl;
 
     to_polar_map = cv::Mat( N_s*N_r, MAX_PIX_COUNT, CV_32S, double(0));
     to_cart_map = cv::Mat(src_height, src_width, CV_32S, double(0));
