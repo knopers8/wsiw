@@ -1,4 +1,4 @@
-function [frame_time,cl_runtime,cl_to_polar,cl_to_cart] = importfile(filename, startRow, endRow)
+function [frame_time,cl_runtime,cl_to_polar,cl_imgproc,cl_to_cart] = importfile(filename, startRow, endRow)
 %IMPORTFILE Import numeric data from a text file as column vectors.
 %   [FRAME_TIME,CL_RUNTIME,CL_TO_POLAR,CL_TO_CART] = IMPORTFILE(FILENAME)
 %   Reads data from text file FILENAME for the default selection.
@@ -27,7 +27,7 @@ end
 %   column3: double (%f)
 %	column4: double (%f)
 % For more information, see the TEXTSCAN documentation.
-formatSpec = '%f%f%f%f%[^\n\r]';
+formatSpec = '%f%f%f%f%f%[^\n\r]';
 
 %% Open the text file.
 fileID = fopen(filename,'r');
@@ -58,6 +58,7 @@ fclose(fileID);
 frame_time = dataArray{:, 1};
 cl_runtime = dataArray{:, 2};
 cl_to_polar = dataArray{:, 3};
-cl_to_cart = dataArray{:, 4};
+cl_imgproc = dataArray{:, 4};
+cl_to_cart = dataArray{:, 5};
 
 

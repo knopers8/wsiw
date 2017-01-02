@@ -37,7 +37,26 @@ __kernel void to_polar_C1_D0(
     output[step*j+i] = k>0 ? acc/k : 0;
 }
 
+__kernel void processing_C1_D0(
+   __read_only __global uchar* input,
+   __read_only __constant int* params,
+    __write_only __global uchar* output)
+{
 
+    int i = get_global_id(0);
+    int j = get_global_id(1);
+
+    //params: MAX_PIX_COUNT, N_s, N_r, src_height, src_width, polar_step, cart_step
+    int step = params[5];
+    int N_s = params[1];
+
+    int shift = N_s/6;
+
+    if ( i + shift > N_s)
+        output[step*j+i+shift-N_s] = 255 - input[step*j+i];
+    else
+        output[step*j+i+shift] = 255 - input[step*j+i];
+}
 
 __kernel void to_cart_C1_D0(
    __read_only __global uchar* input,
@@ -114,6 +133,25 @@ __kernel void to_polar_C3_D0(
 
 }
 
+__kernel void processing_C3_D0(
+   __read_only __global uchar4* input,
+   __read_only __constant int* params,
+    __write_only __global uchar4* output)
+{
+
+    int i = get_global_id(0);
+    int j = get_global_id(1);
+
+    //params: MAX_PIX_COUNT, N_s, N_r, src_height, src_width, polar_step, cart_step
+    int step = params[5];
+    int N_s = params[1];
+    int shift = N_s/6;
+
+    if ( i + shift > N_s)
+        output[step*j+i+shift-N_s] = (uchar4)(255,255,255,0) - input[step*j+i];
+    else
+        output[step*j+i+shift] = (uchar4)(255,255,255,0) - input[step*j+i];
+}
 
 __kernel void to_cart_C3_D0(
    __read_only __global uint* input,

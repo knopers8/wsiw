@@ -19,10 +19,10 @@
 #define WEBCAM
 #define MOVIEx
 #define GRAYSCALEx
-#define WRITE_PERFORMANCE_TO_FILEx
+#define WRITE_PERFORMANCE_TO_FILE
 #define SHOW_OUTPUTS
 
-#define WEBCAM_IMG_SIZE (1024)
+#define WEBCAM_IMG_SIZE (512)
 
 int main(int argc, const char** argv)
 {
@@ -34,6 +34,7 @@ int main(int argc, const char** argv)
     double loop_run_time = 0;
     double cl_run_time = 0;
     double cl_to_polar_time = 0;
+    double cl_processing_time = 0;
     double cl_to_cart_time = 0;
     util::Timer timer;
 
@@ -118,7 +119,7 @@ int main(int argc, const char** argv)
     //-----------------------------------------------------
     int blind = 10; // radius of blind spot, can be 0
     int N_r = 128;   //number of rings
-    int r_max = 500; // outer raius of last ring
+    int r_max = 250; // outer raius of last ring
     float r_n = (r_max-blind)/(float)N_r;   // radius of n-th ring = n*r_n n=0:N_r-1;
     int N_s = 128; // number of slices, just like pizza. Find better name and let me know. Number of part to divide every ring.
 
@@ -157,6 +158,7 @@ int main(int argc, const char** argv)
     std::vector<int> params = { MAX_PIX_COUNT, N_s, N_r, src_height, src_width, polar_step, cart_step};
 
     cv::Mat mat_polar = cv::Mat( N_r, N_s, mat_src.type(), double(0));
+    cv::Mat mat_processed = cv::Mat( N_r, N_s, mat_src.type(), double(0));
     cv::Mat mat_cart = cv::Mat( src_height, src_width, mat_src.type(), double(0));
     cv::Mat polar_result_display;
 
@@ -186,6 +188,7 @@ int main(int argc, const char** argv)
                             std::istreambuf_iterator<char>());
 
     cv::ocl::ProgramSource program("to_polar", contents.c_str());
+    cv::ocl::ProgramSource program_processing("processing", contents.c_str());
     cv::ocl::ProgramSource program_to_cart("to_cart", contents.c_str());
     in.close();
 
@@ -194,6 +197,7 @@ int main(int argc, const char** argv)
     std::size_t cartGlobalThreads[3] = { src_height, src_width, 1};
     //std::size_t localThreads[3] = {};
     std::vector<std::pair<size_t , const void *> > to_polar_args(4);
+    std::vector<std::pair<size_t , const void *> > processing_args(3);
     std::vector<std::pair<size_t , const void *> > to_cart_args(4);
 
 
@@ -201,11 +205,14 @@ int main(int argc, const char** argv)
     to_polar_args[1] =  std::make_pair( sizeof(cl_mem), (void *) &ocl_to_polar_map.data );
     to_polar_args[2] =  std::make_pair( sizeof(cl_mem), (void *) &ocl_params.data );
 
+    processing_args[1] =  std::make_pair( sizeof(cl_mem), (void *) &ocl_params.data );
+
     to_cart_args[1] =  std::make_pair( sizeof(cl_mem), (void *) &ocl_to_cart_map.data );
     to_cart_args[2] =  std::make_pair( sizeof(cl_mem), (void *) &ocl_params.data );
 
     cv::ocl::oclMat ocl_src;
     cv::ocl::oclMat ocl_polar;
+    cv::ocl::oclMat ocl_processed;
     cv::ocl::oclMat ocl_cart;
 
     std::cout << "Start\n";
@@ -242,22 +249,34 @@ int main(int argc, const char** argv)
     //-----------------------------------------------------
     //execute kernel
     //-----------------------------------------------------
-
+    //to polar
     cv::ocl::openCLExecuteKernelInterop(cv::ocl::Context::getContext(),
         program, "to_polar", polarGlobalThreads, NULL, to_polar_args, channels, depth, NULL);
     ocl_polar.download(mat_polar);
 
     cl_to_polar_time = static_cast<double>(timer.getTimeMicroseconds()) / 1000.0 - cl_start_time;
 
+
+    //image processing
+    ocl_processed = mat_processed;
+    processing_args[0] = std::make_pair( sizeof(cl_mem), (void *) &ocl_polar.data );
+    processing_args[2] = std::make_pair( sizeof(cl_mem), (void *) &ocl_processed.data );
+    cv::ocl::openCLExecuteKernelInterop(cv::ocl::Context::getContext(),
+        program_processing, "processing", polarGlobalThreads, NULL, processing_args, channels, depth, NULL);
+    ocl_processed.download(mat_processed);
+
+    cl_processing_time = static_cast<double>(timer.getTimeMicroseconds()) / 1000.0 - cl_start_time - cl_to_polar_time;
+
+    //to cart
     ocl_cart = mat_cart;
-    to_cart_args[0] = std::make_pair( sizeof(cl_mem), (void *) &ocl_polar.data );
+    to_cart_args[0] = std::make_pair( sizeof(cl_mem), (void *) &ocl_processed.data );
     to_cart_args[3] = std::make_pair( sizeof(cl_mem), (void *) &ocl_cart.data );
     cv::ocl::openCLExecuteKernelInterop(cv::ocl::Context::getContext(),
         program_to_cart, "to_cart", cartGlobalThreads, NULL, to_cart_args, channels, depth, NULL);
     ocl_cart.download(mat_cart);
 
     cl_run_time  = (static_cast<double>(timer.getTimeMicroseconds()) / 1000.0) - cl_start_time;
-    cl_to_cart_time = cl_run_time - cl_to_polar_time;
+    cl_to_cart_time = cl_run_time - cl_processing_time - cl_to_polar_time;
 
 #endif //C_MODEL
 
@@ -270,8 +289,10 @@ int main(int argc, const char** argv)
 #ifdef SHOW_OUTPUTS
     cv::namedWindow("Source");
     cv::namedWindow("Polar");
+    cv::namedWindow("Processing");
     cv::namedWindow("Cart");
     cv::imshow("Source", mat_src);
+    cv::imshow("Processing", mat_processed);
     cv::imshow("Polar", polar_result_display);
     cv::imshow("Cart", mat_cart);
 #endif
@@ -280,14 +301,14 @@ int main(int argc, const char** argv)
 
     loop_run_time = (static_cast<double>(timer.getTimeMicroseconds()) / 1000.0) - loop_start_time;
 #ifdef SHOW_OUTPUTS
-    printf("\bLoop: %.3f ms, OpenCL: %.3f ms - %.0f\%, to polar: %.3f ms, to cart: %.3f ms \n",
-            loop_run_time, cl_run_time, 100*cl_run_time/loop_run_time, cl_to_polar_time, cl_to_cart_time);
+    printf("\bLoop: %.1fms, OpenCL: %.2fms - %.0f\%, to polar: %.2fms, imp proc: %.2fms to cart: %.2fms \n",
+            loop_run_time, cl_run_time, 100*cl_run_time/loop_run_time, cl_to_polar_time, cl_processing_time, cl_to_cart_time);
 #endif
     loop_start_time = static_cast<double>(timer.getTimeMicroseconds()) / 1000.0;
 
 #ifdef WRITE_PERFORMANCE_TO_FILE
 
-    performance_file << loop_run_time << " " << cl_run_time << " " << cl_to_polar_time << " " << cl_to_cart_time << std::endl;
+    performance_file << loop_run_time << " " << cl_run_time << " " << cl_to_polar_time << " " << cl_processing_time << " " << cl_to_cart_time << std::endl;
 
 #endif // WRITE_PERFORMANCE_TO_FILE
 
