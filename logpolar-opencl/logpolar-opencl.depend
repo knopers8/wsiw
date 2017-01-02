@@ -4,7 +4,7 @@
 	<sys/time.h>
 	<stdlib.h>
 
-1483123300 source:d:\programowanie\wsiw\logpolar-opencl\main.cpp
+1483280271 source:d:\programowanie\wsiw\logpolar-opencl\main.cpp
 	<opencv2/core/core.hpp>
 	<opencv2/highgui/highgui.hpp>
 	<opencv2/ocl/ocl.hpp>
