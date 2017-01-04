@@ -1,0 +1,1 @@
+g++ -std=c++11 -I/usr/local/include/opencv -I/usr/local/include/opencv2 -I/opt/intel/opencl-1.2-sdk-6.3.0.1904/include -L/usr/local/lib/ -g -o polar  main.cpp polar_utils.cpp -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_ocl /usr/lib/x86_64-linux-gnu/libOpenCL.so.1
