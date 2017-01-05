@@ -69,22 +69,22 @@ void get_polar_pixel(int32_t * polar_coords, int32_t * cart_coords, int x_0, int
     int y_min = *std::min_element( y_corners, y_corners+4);
 
 
-    std::vector<int> x_span;
-    std::vector<int> y_span;
+//    std::vector<int> x_span;
+//    std::vector<int> y_span;
     int error_margin = 15;
 
-    for( int i = x_min - error_margin; i <= x_max + error_margin; i++)
-    {
-        x_span.push_back( i );
-    }
-    for( int i = y_min - error_margin; i <= y_max + error_margin; i++)
-    {
-        y_span.push_back( i );
-    }
+//    for( int i = x_min - error_margin; i <= x_max + error_margin; i++)
+//    {
+//        x_span.push_back( i );
+//    }
+//    for( int i = y_min - error_margin; i <= y_max + error_margin; i++)
+//    {
+//        y_span.push_back( i );
+//    }
 
-    for( auto&& x_el : x_span)
+    for(int x_el = x_min - error_margin; x_el <= x_max + error_margin; x_el++)// auto&& x_el : x_span)
     {
-        for( auto&& y_el : y_span)
+        for(int y_el = y_min - error_margin; y_el <= y_max + error_margin; y_el++  )// auto&& y_el : y_span)
         {
             int x = x_el - x_0;
             int y = y_el - y_0;
@@ -101,51 +101,4 @@ void get_polar_pixel(int32_t * polar_coords, int32_t * cart_coords, int x_0, int
             }
         }
     }
-}
-
-
-void to_polar_c(
-    uchar* input,
-    int32_t* to_polar_map_x,
-    int32_t* to_polar_map_y,
-//    int * params,
-//    __constant int center_h,
-//    __constant int center_w,
-    uchar* output)
-{
-
-    int i; //kolumna
-    int j; //wiersz
-
-    int center_w = 128; //from params later
-    int center_h = 128; //from params later
-
-    int read_pos;
-    int acc;
-
-//    int16_t to_polar_map[128];
-    int k;
-
-    for( i = 0; i < 40; i++){
-        for( j = 0; j < 40; j++){
-            acc = 0;
-
-            for( k = 0; k < 128; k++)
-            {
-                read_pos = to_polar_map_y[k + (40*j+i)*128];
-                if ( read_pos > 0 )
-                {
-                    read_pos += to_polar_map_x[k + (40*j+i)*128]*256;
-                    acc += input[read_pos];
-                }
-                else
-                {
-                    break;
-                }
-
-            }
-            output[40*j+i] = k>0 ? acc/k : 0;
-        }
-    }
-
 }

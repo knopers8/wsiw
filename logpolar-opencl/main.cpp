@@ -9,20 +9,23 @@
 
 
 #define PI (3.14159265359)
-#define MAX_PIX_COUNT (128)
 
 #include "polar_utils.hpp"
 #include "util.hpp"
 
 //delete 'x' to activate
-#define C_MODELx
-#define WEBCAM
-#define MOVIEx
+#define WEBCAMx
+#define MOVIE
 #define GRAYSCALEx
-#define WRITE_PERFORMANCE_TO_FILE
+#define WRITE_PERFORMANCE_TO_FILEx
 #define SHOW_OUTPUTS
 
 #define WEBCAM_IMG_SIZE (512)
+#define POLAR_SIZE (128)
+#define MAX_RADIUS (250)
+
+#define MOVIE_NAME "test512.mp4"
+#define IMAGE_NAME "cameraman.tif"
 
 int main(int argc, const char** argv)
 {
@@ -79,7 +82,7 @@ int main(int argc, const char** argv)
 #ifdef WEBCAM
     cv::VideoCapture cap(0);// + CV_CAP_DSHOW);
 #else //MOVIE
-    cv::VideoCapture cap("20161230_153319.mp4");
+    cv::VideoCapture cap(MOVIE_NAME);
 #endif // WEBCAM
 
     cv::Mat mat_src;
@@ -96,13 +99,13 @@ int main(int argc, const char** argv)
     cv::resize(mat_src, mat_src, {WEBCAM_IMG_SIZE, WEBCAM_IMG_SIZE}, 0, 0, CV_INTER_NN);
 #else //MOVIE
 //    cv::resize(mat_src, mat_src, {WEBCAM_IMG_SIZE, WEBCAM_IMG_SIZE}, 0, 0, CV_INTER_NN);
-    cv::Rect crop((mat_src.cols - mat_src.rows)/2, 0, mat_src.rows, mat_src.rows);
-    cv::Mat(mat_src(crop)).copyTo(mat_src);
+//    cv::Rect crop((mat_src.cols - mat_src.rows)/2, 0, mat_src.rows, mat_src.rows);
+//    cv::Mat(mat_src(crop)).copyTo(mat_src);
 #endif
     std::cout << "Source size: " << mat_src.cols << " " << mat_src.rows << " step: " << mat_src.step << std::endl;
 #else
 
-    cv::Mat mat_src = cv::imread("cameraman.tif", cv::IMREAD_GRAYSCALE);
+    cv::Mat mat_src = cv::imread(IMAGE_NAME, cv::IMREAD_GRAYSCALE);
     cv::resize(mat_src, mat_src, {WEBCAM_IMG_SIZE, WEBCAM_IMG_SIZE}, 0, 0, CV_INTER_NN);
     if(mat_src.empty())
     {
@@ -118,10 +121,10 @@ int main(int argc, const char** argv)
     // polar transformation init
     //-----------------------------------------------------
     int blind = 10; // radius of blind spot, can be 0
-    int N_r = 128;   //number of rings
-    int r_max = 250; // outer raius of last ring
+    int N_r = POLAR_SIZE;   //number of rings
+    int r_max = MAX_RADIUS; // outer raius of last ring
     float r_n = (r_max-blind)/(float)N_r;   // radius of n-th ring = n*r_n n=0:N_r-1;
-    int N_s = 128; // number of slices, just like pizza. Find better name and let me know. Number of part to divide every ring.
+    int N_s = POLAR_SIZE; // number of slices, just like pizza. Find better name and let me know. Number of part to divide every ring.
 
     int src_height = mat_src.rows;
     int src_width = mat_src.cols;
@@ -135,13 +138,13 @@ int main(int argc, const char** argv)
     create_maps(to_polar_map, to_cart_map, N_s, N_r, r_n, blind, center_h, center_w, src_width, src_height);
     std::cout << "Maps created" << std::endl;
 
-//    int32_t * cart_coords = (int32_t *)to_cart_map.data;// + src_width*128;
+//    int32_t * cart_coords = (int32_t *)to_polar_map.data;// + src_width*128;
 //    std::ofstream myfile;
-//    myfile.open ("to_cart_map.txt");
+//    myfile.open ("to_polar_map.txt");
 //
-//    for(int i = 0; i < src_width; i++)
+//    for(int i = 0; i < src_width*src_height; i++)
 //    {
-//        for( int j = 0 ; j < src_height; j++)th
+//        for( int j = 0 ; j < MAX_PIX_COUNT; j++)
 //        {
 //            myfile << std::setw(10) << *(cart_coords++) << " ";
 //        }
@@ -162,14 +165,6 @@ int main(int argc, const char** argv)
     cv::Mat mat_cart = cv::Mat( src_height, src_width, mat_src.type(), double(0));
     cv::Mat polar_result_display;
 
-
-#ifdef C_MODEL
-    cv::Mat mat_dst = cv::Mat( N_r, N_s, mat_src.type(), double(0));
-
-    to_polar_c( mat_src.data, (int32_t *)to_polar_map_x.data, (int32_t *)to_polar_map_y.data, mat_dst.data);
-
-
-#else
     //-----------------------------------------------------
     // OpenCL init
     //-----------------------------------------------------
@@ -232,7 +227,7 @@ int main(int argc, const char** argv)
 #else
 //    cv::resize(mat_src, mat_src, {WEBCAM_IMG_SIZE, WEBCAM_IMG_SIZE}, 0, 0, CV_INTER_NN);
 //    cv::Rect crop(0, 0, 1024, 1024);
-    cv::Mat(mat_src(crop)).copyTo(mat_src);
+//    cv::Mat(mat_src(crop)).copyTo(mat_src);
 #endif
 
 #endif //WEBCAM or MOVIE
@@ -277,9 +272,6 @@ int main(int argc, const char** argv)
 
     cl_run_time  = (static_cast<double>(timer.getTimeMicroseconds()) / 1000.0) - cl_start_time;
     cl_to_cart_time = cl_run_time - cl_processing_time - cl_to_polar_time;
-
-#endif //C_MODEL
-
 
     //-----------------------------------------------------
     //show results
