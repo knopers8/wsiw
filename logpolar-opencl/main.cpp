@@ -14,14 +14,14 @@
 #include "util.hpp"
 
 //delete 'x' to activate
-#define WEBCAMx
-#define MOVIE
+#define WEBCAM
+#define MOVIEx
 #define GRAYSCALEx
 #define WRITE_PERFORMANCE_TO_FILEx
 #define SHOW_OUTPUTS
 
 #define WEBCAM_IMG_SIZE (512)
-#define POLAR_SIZE (128)
+#define POLAR_SIZE (256)
 #define MAX_RADIUS (250)
 
 #define MOVIE_NAME "test512.mp4"
@@ -56,7 +56,7 @@ int main(int argc, const char** argv)
     //-----------------------------------------------------
 
     cv::ocl::DevicesInfo devInfo;
-    int res = cv::ocl::getOpenCLDevices(devInfo);
+    int res = cv::ocl::getOpenCLDevices(devInfo, cv::ocl::CVCL_DEVICE_TYPE_ALL);
     if(res == 0)
     {
         std::cerr << "There is no OPENCL Here !" << std::endl;
@@ -66,12 +66,23 @@ int main(int argc, const char** argv)
     {
         for(unsigned int i = 0 ; i < devInfo.size() ; ++i)
         {
-            std::cout << "Device : " << devInfo[i]->deviceName << " is present" << std::endl;
+            std::cout << "Device " << i << ": " << devInfo[i]->deviceName << " is present" << std::endl;
         }
     }
 
-    cv::ocl::setDevice(devInfo[1]);        // select device to use
-    std::cout << CV_VERSION_EPOCH << "." << CV_VERSION_MAJOR << "." << CV_VERSION_MINOR << std::endl;
+    std::cout << "Choose device number." << std::endl;
+
+    int devNumber;
+    std::cin >> devNumber;
+
+    if(devNumber < 0 || devNumber >= devInfo.size())
+    {
+        std::cout << "Incorrect device number, closing..." << std::endl;
+        return -1;
+    }
+
+    cv::ocl::setDevice(devInfo[devNumber]);        // select device to use
+    std::cout << "Open CV version: " << CV_VERSION_EPOCH << "." << CV_VERSION_MAJOR << "." << CV_VERSION_MINOR << std::endl;
 
 
     //-----------------------------------------------------
